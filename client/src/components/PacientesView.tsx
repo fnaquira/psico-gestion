@@ -1,0 +1,232 @@
+import React, { useState } from 'react';
+import { Search, Plus, Eye, Trash2, Edit, X, UserCheck, Users, AlertCircle } from 'lucide-react';
+
+const AVATAR_COLORS = [
+  'bg-teal-500', 'bg-violet-500', 'bg-emerald-500',
+  'bg-amber-500', 'bg-rose-500', 'bg-cyan-600',
+];
+
+function getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function avatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+const pacientes = [
+  {
+    id: 1,
+    nombre: 'Carlos Martínez',
+    edad: 28,
+    telefono: '+56 9 1234 5678',
+    estado: 'activo',
+    deuda: 0,
+    ultimaSesion: '28 Mar',
+    tutor: null,
+  },
+  {
+    id: 2,
+    nombre: 'Laura Gómez',
+    edad: 8,
+    telefono: '+56 9 8765 4321',
+    estado: 'activo',
+    deuda: 0,
+    ultimaSesion: '25 Mar',
+    tutor: { nombre: 'María Gómez', relacion: 'Madre', telefono: '+56 9 1111 1111' },
+  },
+  {
+    id: 3,
+    nombre: 'María González',
+    edad: 35,
+    telefono: '+56 9 5555 5555',
+    estado: 'en_deuda',
+    deuda: 300,
+    ultimaSesion: '25 Mar',
+    tutor: null,
+  },
+  {
+    id: 4,
+    nombre: 'Roberto Silva',
+    edad: 12,
+    telefono: '+56 9 9999 9999',
+    estado: 'activo',
+    deuda: 0,
+    ultimaSesion: '30 Mar',
+    tutor: { nombre: 'Juan Silva', relacion: 'Padre', telefono: '+56 9 2222 2222' },
+  },
+  {
+    id: 5,
+    nombre: 'Ana López',
+    edad: 42,
+    telefono: '+56 9 3333 3333',
+    estado: 'activo',
+    deuda: 0,
+    ultimaSesion: '29 Mar',
+    tutor: null,
+  },
+];
+
+export default function PacientesView() {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filtered = pacientes.filter(
+    p =>
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.telefono.includes(searchTerm),
+  );
+
+  const activos = pacientes.filter(p => p.estado === 'activo').length;
+  const menores = pacientes.filter(p => p.tutor !== null).length;
+  const enDeuda = pacientes.filter(p => p.deuda > 0).length;
+
+  return (
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Pacientes</h2>
+          <p className="text-sm text-muted-foreground mt-1">{pacientes.length} pacientes registrados</p>
+        </div>
+        <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2">
+          <Plus size={17} strokeWidth={2.5} />
+          Nuevo Paciente
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-primary/8 rounded-lg flex items-center justify-center shrink-0">
+            <UserCheck size={19} className="text-primary" strokeWidth={1.75} />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground tracking-tight">{activos}</p>
+            <p className="text-xs text-muted-foreground font-medium">Pacientes Activos</p>
+          </div>
+        </div>
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center shrink-0">
+            <Users size={19} className="text-violet-600" strokeWidth={1.75} />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground tracking-tight">{menores}</p>
+            <p className="text-xs text-muted-foreground font-medium">Menores con Tutor</p>
+          </div>
+        </div>
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+            <AlertCircle size={19} className="text-red-500" strokeWidth={1.75} />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-red-500 tracking-tight">{enDeuda}</p>
+            <p className="text-xs text-muted-foreground font-medium">Con Deuda</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} strokeWidth={2} />
+        <input
+          type="text"
+          placeholder="Buscar por nombre o teléfono..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-10 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-card transition-shadow"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Paciente</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Edad</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Contacto</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tutor</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Estado</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Deuda</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Última Sesión</th>
+              <th className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {filtered.map(p => (
+              <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${avatarColor(p.nombre)}`}>
+                      {getInitials(p.nombre)}
+                    </div>
+                    <p className="font-medium text-foreground text-sm">{p.nombre}</p>
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-sm text-foreground tabular-nums">{p.edad} años</td>
+                <td className="px-5 py-4 text-sm text-foreground">{p.telefono}</td>
+                <td className="px-5 py-4 text-sm">
+                  {p.tutor ? (
+                    <div title={`${p.tutor.relacion} · ${p.tutor.telefono}`}>
+                      <p className="font-medium text-foreground text-sm">{p.tutor.nombre}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{p.tutor.relacion}</p>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-5 py-4">
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    p.estado === 'activo'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-red-50 text-red-600'
+                  }`}>
+                    {p.estado === 'activo' ? 'Activo' : 'En Deuda'}
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  {p.deuda > 0 ? (
+                    <span className="text-sm font-bold text-red-500 tabular-nums">${p.deuda}</span>
+                  ) : (
+                    <span className="text-sm text-emerald-600 font-semibold">Al día</span>
+                  )}
+                </td>
+                <td className="px-5 py-4 text-sm text-muted-foreground font-medium">{p.ultimaSesion}</td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-1">
+                    <button className="p-1.5 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-accent-foreground" title="Ver">
+                      <Eye size={14} strokeWidth={1.75} />
+                    </button>
+                    <button className="p-1.5 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-accent-foreground" title="Editar">
+                      <Edit size={14} strokeWidth={1.75} />
+                    </button>
+                    <button className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-muted-foreground hover:text-destructive" title="Eliminar">
+                      <Trash2 size={14} strokeWidth={1.75} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  No se encontraron pacientes para &ldquo;{searchTerm}&rdquo;
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
