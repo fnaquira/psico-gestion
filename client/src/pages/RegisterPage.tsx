@@ -2,16 +2,24 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import AuthLayout from '@/components/AuthLayout';
+import { useAuth } from '../contexts/AuthContext';
 
-interface RegisterPageProps {
-  onLogin: () => void;
-}
+const ESPECIALIDADES: { value: string; label: string }[] = [
+  { value: 'clinica', label: 'Psicología Clínica' },
+  { value: 'infantil', label: 'Psicología Infantil' },
+  { value: 'educativa', label: 'Psicología Educativa' },
+  { value: 'neuropsicologia', label: 'Neuropsicología' },
+  { value: 'organizacional', label: 'Psicología Organizacional' },
+  { value: 'otra', label: 'Otra' },
+];
 
-export default function RegisterPage({ onLogin }: RegisterPageProps) {
+export default function RegisterPage() {
   const [, navigate] = useLocation();
+  const { register } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
+    nombreConsultorio: '',
     nombre: '',
     email: '',
     especialidad: '',
@@ -23,7 +31,7 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (form.password !== form.confirmPassword) {
@@ -31,10 +39,19 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await register({
+        nombreConsultorio: form.nombreConsultorio,
+        nombre: form.nombre,
+        email: form.email,
+        especialidad: form.especialidad,
+        password: form.password,
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.error ?? 'Error al crear la cuenta. Intentá de nuevo.');
+    } finally {
       setLoading(false);
-      onLogin();
-    }, 800);
+    }
   };
 
   return (
@@ -43,6 +60,17 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
       subtitle="Registrá tu consultorio en PsicoGestión"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Nombre del consultorio">
+          <input
+            type="text"
+            value={form.nombreConsultorio}
+            onChange={set('nombreConsultorio')}
+            placeholder="Consultorio Psicológico San Martín"
+            required
+            className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
+          />
+        </Field>
+
         <Field label="Nombre completo">
           <input
             type="text"
@@ -73,12 +101,9 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
             className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow bg-white"
           >
             <option value="">Seleccioná tu especialidad</option>
-            <option>Psicología Clínica</option>
-            <option>Psicología Infantil</option>
-            <option>Psicología Educativa</option>
-            <option>Neuropsicología</option>
-            <option>Psicología Organizacional</option>
-            <option>Otra</option>
+            {ESPECIALIDADES.map(e => (
+              <option key={e.value} value={e.value}>{e.label}</option>
+            ))}
           </select>
         </Field>
 

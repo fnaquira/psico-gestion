@@ -4,21 +4,31 @@ import NotFound from "@/pages/NotFound";
 import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Home from "./pages/Home";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import { useState } from "react";
 
-function Router({ isAuth, onLogin, onLogout }: { isAuth: boolean; onLogin: () => void; onLogout: () => void }) {
+function Router() {
+  const { isAuth, loading, logout } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <Switch>
       {/* Auth routes — only accessible when NOT logged in */}
       <Route path="/login">
-        {isAuth ? <Redirect to="/" /> : <LoginPage onLogin={onLogin} />}
+        {isAuth ? <Redirect to="/" /> : <LoginPage />}
       </Route>
       <Route path="/register">
-        {isAuth ? <Redirect to="/" /> : <RegisterPage onLogin={onLogin} />}
+        {isAuth ? <Redirect to="/" /> : <RegisterPage />}
       </Route>
       <Route path="/forgot-password">
         {isAuth ? <Redirect to="/" /> : <ForgotPasswordPage />}
@@ -26,7 +36,7 @@ function Router({ isAuth, onLogin, onLogout }: { isAuth: boolean; onLogin: () =>
 
       {/* Protected routes — only accessible when logged in */}
       <Route path="/">
-        {isAuth ? <Home onLogout={onLogout} /> : <Redirect to="/login" />}
+        {isAuth ? <Home onLogout={logout} /> : <Redirect to="/login" />}
       </Route>
 
       <Route path="/404" component={NotFound} />
@@ -36,18 +46,14 @@ function Router({ isAuth, onLogin, onLogout }: { isAuth: boolean; onLogin: () =>
 }
 
 function App() {
-  const [isAuth, setIsAuth] = useState(false);
-
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <Router
-            isAuth={isAuth}
-            onLogin={() => setIsAuth(true)}
-            onLogout={() => setIsAuth(false)}
-          />
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

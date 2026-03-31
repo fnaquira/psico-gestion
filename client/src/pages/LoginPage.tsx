@@ -2,26 +2,28 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useLocation } from 'wouter';
 import AuthLayout from '@/components/AuthLayout';
+import { useAuth } from '../contexts/AuthContext';
 
-interface LoginPageProps {
-  onLogin: () => void;
-}
-
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage() {
   const [, navigate] = useLocation();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    // Mock auth — replace with real API call
-    setTimeout(() => {
+    try {
+      await login(email, password);
+    } catch (err: any) {
+      setError(err.response?.data?.error ?? 'Error al iniciar sesión. Verificá tus credenciales.');
+    } finally {
       setLoading(false);
-      onLogin();
-    }, 800);
+    }
   };
 
   return (
@@ -72,6 +74,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             ¿Olvidaste tu contraseña?
           </button>
         </div>
+
+        {error && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"

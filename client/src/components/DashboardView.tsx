@@ -1,16 +1,8 @@
-import React from 'react';
-import { AlertCircle, Clock, TrendingUp, TrendingDown, Users, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, Clock, TrendingUp, TrendingDown, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-
-const weeklyIncome = [
-  { dia: 'Lun', monto: 450 },
-  { dia: 'Mar', monto: 620 },
-  { dia: 'Mié', monto: 380 },
-  { dia: 'Jue', monto: 710 },
-  { dia: 'Vie', monto: 540 },
-  { dia: 'Sáb', monto: 290 },
-  { dia: 'Hoy', monto: 420 },
-];
+import api from '../lib/api';
+import type { DashboardStats } from '../../../shared/types';
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -18,55 +10,72 @@ function getInitials(name: string) {
 
 const AVATAR_COLORS = ['bg-teal-500', 'bg-emerald-500', 'bg-violet-500', 'bg-amber-500', 'bg-rose-500'];
 
-const citasDelDia = [
-  { time: '10:00', patient: 'Carlos Martínez', type: 'Seguimiento', doctor: 'Dr. Pérez', status: 'Confirmada' },
-  { time: '11:00', patient: 'Laura Gómez', type: 'Inicial', doctor: 'Dra. López', status: 'Confirmada' },
-  { time: '14:00', patient: 'Roberto Silva', type: 'Evaluación', doctor: 'Dr. Pérez', status: 'Pendiente' },
-];
-
 export default function DashboardView() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<DashboardStats>('/dashboard/stats')
+      .then(r => setStats(r.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const weeklyIncome = stats?.ingresosUltimos7Dias ?? [];
+  const weeklyTotal = weeklyIncome.reduce((acc, d) => acc + d.monto, 0);
+  const citasDelDia = stats?.citasDelDia ?? [];
+  const alertas = stats?.alertas ?? [];
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[300px]">
+        <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-7">
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Citas Hoy"
-          value="8"
-          sub="2 en la próxima hora"
+          value={String(stats?.citasHoy ?? 0)}
+          sub={`${stats?.citasHoyPendientes ?? 0} en la próxima hora`}
           icon={<Clock size={19} strokeWidth={1.75} />}
           iconBg="bg-primary/8"
           iconColor="text-primary"
-          trend="+2 vs. ayer"
+          trend={`${stats?.citasHoy ?? 0} hoy`}
           trendUp
         />
         <StatCard
           label="Pacientes Activos"
-          value="24"
-          sub="3 nuevos este mes"
+          value={String(stats?.pacientesActivos ?? 0)}
+          sub={`${stats?.pacientesNuevosMes ?? 0} nuevos este mes`}
           icon={<Users size={19} strokeWidth={1.75} />}
           iconBg="bg-violet-50"
           iconColor="text-violet-600"
-          trend="+3 este mes"
+          trend={`+${stats?.pacientesNuevosMes ?? 0} este mes`}
           trendUp
         />
         <StatCard
           label="Ingresos Mes"
-          value="$4,200"
-          sub="+12% vs. mes anterior"
+          value={`$${(stats?.ingresosMes ?? 0).toLocaleString()}`}
+          sub={`${stats?.ingresosVariacion ?? 0}% vs. mes anterior`}
           icon={<TrendingUp size={19} strokeWidth={1.75} />}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-          trend="+12%"
-          trendUp
+          trend={`${(stats?.ingresosVariacion ?? 0) >= 0 ? '+' : ''}${stats?.ingresosVariacion ?? 0}%`}
+          trendUp={(stats?.ingresosVariacion ?? 0) >= 0}
         />
         <StatCard
           label="Deudas Pendientes"
-          value="$850"
-          sub="5 pacientes en deuda"
+          value={`$${(stats?.deudasTotal ?? 0).toLocaleString()}`}
+          sub={`${stats?.pacientesEnDeuda ?? 0} pacientes en deuda`}
           icon={<AlertCircle size={19} strokeWidth={1.75} />}
           iconBg="bg-red-50"
           iconColor="text-red-500"
-          trend="+$150 esta semana"
+          trend={`${stats?.pacientesEnDeuda ?? 0} pacientes`}
           trendUp={false}
           valueColor="text-red-500"
         />
@@ -79,11 +88,8 @@ export default function DashboardView() {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="font-semibold text-foreground text-sm">Ingresos — Últimos 7 días</h3>
-              <p className="text-xs text-muted-foreground mt-1">Total semana: $3,410</p>
+              <p className="text-xs text-muted-foreground mt-1">Total semana: ${weeklyTotal.toLocaleString()}</p>
             </div>
-            <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <TrendingUp size={11} strokeWidth={2.5} /> +8.4%
-            </span>
           </div>
           <ResponsiveContainer width="100%" height={156}>
             <BarChart data={weeklyIncome} barSize={28} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -124,30 +130,22 @@ export default function DashboardView() {
         {/* Alerts */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-2.5">
           <h3 className="font-semibold text-foreground text-sm mb-1">Alertas recientes</h3>
-          <AlertItem
-            color="red"
-            icon={<AlertCircle size={14} strokeWidth={2} />}
-            title="Deuda pendiente"
-            desc="María González — $300 · 2 sesiones"
-          />
-          <AlertItem
-            color="blue"
-            icon={<Clock size={14} strokeWidth={2} />}
-            title="Cita en 45 min"
-            desc="Carlos Martínez — Seguimiento"
-          />
-          <AlertItem
-            color="green"
-            icon={<CheckCircle2 size={14} strokeWidth={2} />}
-            title="Pago adelantado"
-            desc="Ana López — $200 por 4 sesiones"
-          />
-          <AlertItem
-            color="red"
-            icon={<AlertCircle size={14} strokeWidth={2} />}
-            title="Deuda pendiente"
-            desc="Pedro Ruiz — $150 · 1 sesión"
-          />
+          {alertas.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center">Sin alertas pendientes</p>
+          )}
+          {alertas.map((alerta, idx) => (
+            <AlertItem
+              key={idx}
+              color={alerta.tipo === 'deuda' ? 'red' : alerta.tipo === 'cita_proxima' ? 'blue' : 'green'}
+              icon={
+                alerta.tipo === 'deuda'
+                  ? <AlertCircle size={14} strokeWidth={2} />
+                  : <Clock size={14} strokeWidth={2} />
+              }
+              title={alerta.detalle}
+              desc={alerta.mensaje}
+            />
+          ))}
         </div>
       </div>
 
@@ -160,23 +158,26 @@ export default function DashboardView() {
           </span>
         </div>
         <div className="divide-y divide-border">
+          {citasDelDia.length === 0 && (
+            <p className="text-xs text-muted-foreground px-6 py-6 text-center">No hay citas para hoy</p>
+          )}
           {citasDelDia.map((cita, idx) => (
             <div key={idx} className="px-6 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${AVATAR_COLORS[idx % AVATAR_COLORS.length]}`}>
-                {getInitials(cita.patient)}
+                {getInitials(cita.paciente)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground text-sm truncate">{cita.patient}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{cita.type} · {cita.doctor}</p>
+                <p className="font-medium text-foreground text-sm truncate">{cita.paciente}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{cita.tipo} · {cita.doctor}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-sm font-semibold text-foreground tabular-nums">{cita.time}</span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">{cita.hora}</span>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                  cita.status === 'Confirmada'
+                  cita.estado === 'Confirmada'
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'bg-amber-50 text-amber-700'
                 }`}>
-                  {cita.status}
+                  {cita.estado}
                 </span>
               </div>
             </div>

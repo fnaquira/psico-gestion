@@ -1,0 +1,33 @@
+import { Schema, model, Document, Types } from "mongoose";
+
+export interface IUser extends Document {
+  tenantId: Types.ObjectId;
+  nombre: string;
+  email: string;
+  passwordHash: string;
+  rol: "admin" | "doctor";
+  especialidad: "clinica" | "infantil" | "educativa" | "neuropsicologia" | "organizacional" | "otra";
+  activo: boolean;
+  createdAt: Date;
+}
+
+const UserSchema = new Schema<IUser>(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", required: true, index: true },
+    nombre: { type: String, required: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true },
+    rol: { type: String, enum: ["admin", "doctor"], default: "doctor" },
+    especialidad: {
+      type: String,
+      enum: ["clinica", "infantil", "educativa", "neuropsicologia", "organizacional", "otra"],
+      default: "clinica",
+    },
+    activo: { type: Boolean, default: true },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+
+UserSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+
+export const User = model<IUser>("User", UserSchema);

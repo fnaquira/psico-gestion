@@ -1,46 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Download, AlertCircle, X, CreditCard, History, TrendingDown } from 'lucide-react';
+import api from '../lib/api';
+import type { PagoDTO } from '../../../shared/types';
 
-const transacciones = [
-  { id: 1, paciente: 'Carlos Martínez', monto: 100, fecha: '30 Mar, 10:30', tipo: 'al_llegar', metodo: 'Efectivo', sesion: 'Seguimiento' },
-  { id: 2, paciente: 'Laura Gómez', monto: 150, fecha: '30 Mar, 09:15', tipo: 'adelantado', metodo: 'Transferencia', sesion: 'Evaluación' },
-  { id: 3, paciente: 'Ana López', monto: 400, fecha: '29 Mar, 14:00', tipo: 'adelantado', metodo: 'Tarjeta', sesion: '4 sesiones' },
-  { id: 4, paciente: 'Roberto Silva', monto: 100, fecha: '28 Mar, 11:45', tipo: 'al_llegar', metodo: 'Efectivo', sesion: 'Seguimiento' },
-];
-
-const deudas = [
-  { id: 1, paciente: 'María González', deuda: 300, maximo: 450, sesiones: 2, desde: '25 Mar' },
-  { id: 2, paciente: 'Pedro Ruiz', deuda: 150, maximo: 450, sesiones: 1, desde: '20 Mar' },
-];
+interface DeudaItem {
+  _id: string;
+  nombre: string;
+  telefono: string;
+  deuda: number;
+  desde: string;
+  sesiones: number;
+}
 
 const TIPO_BADGE: Record<string, string> = {
   adelantado: 'bg-accent text-accent-foreground',
   al_llegar: 'bg-emerald-50 text-emerald-700',
+  deuda: 'bg-red-50 text-red-700',
 };
 
 const TIPO_LABEL: Record<string, string> = {
   adelantado: 'Adelantado',
   al_llegar: 'Al Llegar',
+  deuda: 'Deuda',
 };
 
 const METODO_ICON: Record<string, string> = {
-  Efectivo: '💵',
-  Transferencia: '🏦',
-  Tarjeta: '💳',
+  efectivo: '💵',
+  transferencia: '🏦',
+  tarjeta: '💳',
 };
 
 export default function PagosView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tab, setTab] = useState<'registro' | 'historial' | 'deudas'>('registro');
 
-  const filteredTrans = transacciones.filter(t =>
-    t.paciente.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-  const filteredDeudas = deudas.filter(d =>
-    d.paciente.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const [transacciones, setTransacciones] = useState<PagoDTO[]>([]);
+  const [deudas, setDeudas] = useState<DeudaItem[]>([]);
+  const [totalDeuda, setTotalDeuda] = useState(0);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [loadingDeudas, setLoadingDeudas] = useState(false);
 
-  const totalDeuda = deudas.reduce((s, d) => s + d.deuda, 0);
+  // Registro form state
+  const [form, setForm] = useState({
+    pacienteId: '',
+    pacienteBusqueda: '',
+    monto: '',
+    metodo: 'efectivo' as 'efectivo' | 'transferencia' | 'tarjeta',
+    tipoPago: 'al_llegar' as 'al_llegar' | 'adelantado' | 'deuda',
+    notas: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const fetchHistorial = useCallback(async () => {
+    setLoadingHistorial(true);
+    try {
+      const { data } = await api.get('/pagos', { params: { search: searchTerm, limit: 30 } });
+      setTransacciones(data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  }, [searchTerm]);
+
+  const fetchDeudas = useCallback(async () => {
+    setLoadingDeudas(true);
+    try {
+      const { data } = await api.get('/pagos/deudas');
+      setDeudas(data.data);
+      setTotalDeuda(data.totalDeuda);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDeudas(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'historial') fetchHistorial();
+    if (tab === 'deudas') fetchDeudas();
+  }, [tab, fetchHistorial, fetchDeudas]);
+
+  const handleRegistrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.pacienteId) {
+      setSubmitError('Seleccioná un paciente primero.');
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      await api.post('/pagos', {
+        pacienteId: form.pacienteId,
+        monto: parseFloat(form.monto),
+        metodo: form.metodo,
+        tipoPago: form.tipoPago,
+        notas: form.notas,
+      });
+      setForm({ pacienteId: '', pacienteBusqueda: '', monto: '', metodo: 'efectivo', tipoPago: 'al_llegar', notas: '' });
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.error ?? 'Error al registrar el pago');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filteredDeudas = deudas.filter(d =>
+    d.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div className="p-8 space-y-6">
@@ -50,7 +118,10 @@ export default function PagosView() {
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Pagos</h2>
           <p className="text-sm text-muted-foreground mt-1">Gestión de transacciones y deudas</p>
         </div>
-        <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2">
+        <button
+          onClick={() => setTab('registro')}
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
           <Plus size={17} strokeWidth={2.5} />
           Registrar Pago
         </button>
@@ -60,8 +131,8 @@ export default function PagosView() {
       <div className="flex gap-0.5 bg-muted p-1 rounded-xl w-fit">
         {([
           { id: 'registro', label: 'Registro Rápido', icon: CreditCard, count: null },
-          { id: 'historial', label: 'Historial', icon: History, count: transacciones.length },
-          { id: 'deudas', label: 'Deudas', icon: TrendingDown, count: deudas.length },
+          { id: 'historial', label: 'Historial', icon: History, count: transacciones.length || null },
+          { id: 'deudas', label: 'Deudas', icon: TrendingDown, count: deudas.length || null },
         ] as const).map(t => {
           const Icon = t.icon;
           const isActive = tab === t.id;
@@ -95,11 +166,13 @@ export default function PagosView() {
       {tab === 'registro' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-7 max-w-lg">
           <h3 className="text-sm font-semibold text-foreground mb-5">Registrar Pago</h3>
-          <div className="space-y-5">
-            <Field label="Paciente">
+          <form onSubmit={handleRegistrar} className="space-y-5">
+            <Field label="ID de Paciente">
               <input
                 type="text"
-                placeholder="Buscar paciente..."
+                placeholder="ID del paciente (copiar de la lista)"
+                value={form.pacienteId}
+                onChange={e => setForm(f => ({ ...f, pacienteId: e.target.value }))}
                 className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow"
               />
             </Field>
@@ -109,15 +182,24 @@ export default function PagosView() {
                 <input
                   type="number"
                   placeholder="0"
+                  min="0"
+                  step="0.01"
+                  value={form.monto}
+                  onChange={e => setForm(f => ({ ...f, monto: e.target.value }))}
+                  required
                   className="flex-1 px-3.5 py-2.5 text-sm focus:outline-none bg-card tabular-nums"
                 />
               </div>
             </Field>
             <Field label="Método de Pago">
-              <select className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-card transition-shadow">
-                <option>Efectivo</option>
-                <option>Transferencia</option>
-                <option>Tarjeta</option>
+              <select
+                value={form.metodo}
+                onChange={e => setForm(f => ({ ...f, metodo: e.target.value as any }))}
+                className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-card transition-shadow"
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="tarjeta">Tarjeta</option>
               </select>
             </Field>
             <Field label="Tipo de Pago">
@@ -126,9 +208,16 @@ export default function PagosView() {
                   { value: 'al_llegar', label: 'Al Llegar', desc: 'Sesión de hoy' },
                   { value: 'adelantado', label: 'Adelantado', desc: 'Próximas sesiones' },
                   { value: 'deuda', label: 'Pago de Deuda', desc: 'Saldar deuda pendiente' },
-                ].map((opt, i) => (
+                ].map(opt => (
                   <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
-                    <input type="radio" name="tipo" defaultChecked={i === 0} className="w-4 h-4 accent-primary" />
+                    <input
+                      type="radio"
+                      name="tipo"
+                      value={opt.value}
+                      checked={form.tipoPago === opt.value}
+                      onChange={() => setForm(f => ({ ...f, tipoPago: opt.value as any }))}
+                      className="w-4 h-4 accent-primary"
+                    />
                     <div>
                       <span className="text-sm font-medium text-foreground">{opt.label}</span>
                       <span className="text-xs text-muted-foreground ml-2">{opt.desc}</span>
@@ -137,15 +226,28 @@ export default function PagosView() {
                 ))}
               </div>
             </Field>
+            {submitError && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+                {submitError}
+              </p>
+            )}
             <div className="flex gap-3 pt-1">
-              <button className="flex-1 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-                Registrar
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70"
+              >
+                {submitting ? 'Registrando...' : 'Registrar'}
               </button>
-              <button className="flex-1 bg-muted text-foreground px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-muted/70 transition-colors">
+              <button
+                type="button"
+                onClick={() => setForm({ pacienteId: '', pacienteBusqueda: '', monto: '', metodo: 'efectivo', tipoPago: 'al_llegar', notas: '' })}
+                className="flex-1 bg-muted text-foreground px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-muted/70 transition-colors"
+              >
                 Cancelar
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
@@ -154,42 +256,60 @@ export default function PagosView() {
         <div className="space-y-4">
           <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por paciente..." />
           <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  {['Paciente', 'Monto', 'Tipo', 'Método', 'Fecha', ''].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredTrans.map(t => (
-                  <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-medium text-foreground">{t.paciente}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t.sesion}</p>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-bold text-foreground tabular-nums">${t.monto}</td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${TIPO_BADGE[t.tipo]}`}>
-                        {TIPO_LABEL[t.tipo]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-foreground">
-                      <span className="mr-1.5">{METODO_ICON[t.metodo]}</span>
-                      {t.metodo}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-muted-foreground font-medium">{t.fecha}</td>
-                    <td className="px-5 py-4">
-                      <button className="text-primary hover:text-primary/70 text-xs font-semibold flex items-center gap-1 transition-colors">
-                        <Download size={12} strokeWidth={2} />
-                        Recibo
-                      </button>
-                    </td>
+            {loadingHistorial ? (
+              <div className="flex items-center justify-center py-12">
+                <span className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    {['Paciente', 'Monto', 'Tipo', 'Método', 'Fecha', ''].map(h => (
+                      <th key={h} className="px-5 py-3.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {transacciones.map(t => {
+                    const pac = t.paciente as any;
+                    const nombre = pac ? `${pac.nombre} ${pac.apellido}` : '—';
+                    return (
+                      <tr key={t._id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-medium text-foreground">{nombre}</p>
+                        </td>
+                        <td className="px-5 py-4 text-sm font-bold text-foreground tabular-nums">${t.monto}</td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${TIPO_BADGE[t.tipoPago]}`}>
+                            {TIPO_LABEL[t.tipoPago]}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-foreground">
+                          <span className="mr-1.5">{METODO_ICON[t.metodo]}</span>
+                          {t.metodo.charAt(0).toUpperCase() + t.metodo.slice(1)}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-muted-foreground font-medium">
+                          {new Date(t.fechaPago).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td className="px-5 py-4">
+                          <button className="text-primary hover:text-primary/70 text-xs font-semibold flex items-center gap-1 transition-colors">
+                            <Download size={12} strokeWidth={2} />
+                            Recibo
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {transacciones.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                        No hay transacciones registradas
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
@@ -197,57 +317,49 @@ export default function PagosView() {
       {/* DEUDAS */}
       {tab === 'deudas' && (
         <div className="space-y-4">
-          {/* Summary alert */}
           <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
             <AlertCircle className="text-red-500 shrink-0" size={18} strokeWidth={2} />
             <div>
               <p className="font-semibold text-red-800 text-sm">Deudas Pendientes</p>
               <p className="text-xs text-red-600 mt-0.5">
-                Total: <span className="font-bold tabular-nums">${totalDeuda}</span> · {deudas.length} pacientes
+                Total: <span className="font-bold tabular-nums">${totalDeuda.toLocaleString()}</span> · {deudas.length} pacientes
               </p>
             </div>
           </div>
 
           <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Buscar paciente..." />
 
-          <div className="space-y-3">
-            {filteredDeudas.map(d => (
-              <div key={d.id} className="bg-card rounded-xl border border-border shadow-sm p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="font-semibold text-foreground">{d.paciente}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {d.sesiones} sesión{d.sesiones > 1 ? 'es' : ''} · desde {d.desde}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-red-500 tabular-nums">${d.deuda}</p>
-                    <button className="text-xs text-primary hover:text-primary/70 font-semibold mt-1 transition-colors">
-                      Registrar Pago
-                    </button>
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div>
-                  <div className="flex justify-between text-[11px] text-muted-foreground mb-1.5 font-medium">
-                    <span>Deuda actual</span>
-                    <span>{Math.round((d.deuda / d.maximo) * 100)}% del total acumulado</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-400 rounded-full transition-all"
-                      style={{ width: `${(d.deuda / d.maximo) * 100}%` }}
-                    />
+          {loadingDeudas ? (
+            <div className="flex items-center justify-center py-12">
+              <span className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredDeudas.map(d => (
+                <div key={d._id} className="bg-card rounded-xl border border-border shadow-sm p-5">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="font-semibold text-foreground">{d.nombre}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {d.sesiones} sesión{d.sesiones > 1 ? 'es' : ''} · desde {new Date(d.desde).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-red-500 tabular-nums">${d.deuda.toLocaleString()}</p>
+                      <button className="text-xs text-primary hover:text-primary/70 font-semibold mt-1 transition-colors">
+                        Registrar Pago
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {filteredDeudas.length === 0 && (
-              <div className="bg-card rounded-xl border border-border shadow-sm p-10 text-center text-sm text-muted-foreground">
-                No se encontraron deudas para &ldquo;{searchTerm}&rdquo;
-              </div>
-            )}
-          </div>
+              ))}
+              {filteredDeudas.length === 0 && (
+                <div className="bg-card rounded-xl border border-border shadow-sm p-10 text-center text-sm text-muted-foreground">
+                  {searchTerm ? `No se encontraron deudas para "${searchTerm}"` : 'No hay deudas pendientes'}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

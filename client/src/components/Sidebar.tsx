@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Users, CreditCard, BarChart3, Settings, LogOut, HeartPulse } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   currentView: string;
@@ -8,6 +9,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentView, onViewChange, onLogout }: SidebarProps) {
+  const { user } = useAuth();
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
@@ -84,11 +86,11 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
         {/* User */}
         <div className="flex items-center gap-3 px-3 py-3 mt-1 bg-sidebar-accent/60 rounded-lg">
           <div className="w-8 h-8 rounded-full bg-sidebar-primary/25 border border-sidebar-primary/30 flex items-center justify-center text-sidebar-primary text-xs font-bold shrink-0">
-            JP
+            {user?.nombre ? user.nombre.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : '??'}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">Dr. Juan Pérez</p>
-            <p className="text-[11px] text-sidebar-foreground/45 truncate">Psicólogo Clínico</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">{user?.nombre ?? '—'}</p>
+            <p className="text-[11px] text-sidebar-foreground/45 truncate capitalize">{user?.especialidad ?? ''}</p>
           </div>
         </div>
       </div>

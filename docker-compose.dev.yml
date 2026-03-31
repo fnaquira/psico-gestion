@@ -1,0 +1,63 @@
+services:
+  # ── Express API (tsx watch = nodemon-like hot reload) ───────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # TSX_TSCONFIG_PATH avoids a tsx warning; --poll enables inotify-based watching on Windows/Docker volumes
+    command: npx tsx watch --poll server/index.ts
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      MONGODB_URI: mongodb://mongodb:27017/psicogestion
+      JWT_SECRET: dev_secret_change_in_prod
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: "http://localhost:3000"
+    volumes:
+      # Mount source — changes reload tsx automatically
+      - .:/app
+      # Prevent host node_modules from overwriting container's
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Vite dev server (HMR frontend) ──────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npx vite --host
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      # Inside Docker network, api service is reachable by service name
+      VITE_API_URL: http://api:3001
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data_dev:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo_data_dev:
