@@ -23,8 +23,8 @@ jobs:
                   command_timeout: 10m
                   script: |
                       cd psico-gestion
-                      git diff HEAD..origin/main --name-only > /tmp/changed_files || true
                       git fetch origin main
+                      git diff HEAD..origin/main --name-only > /tmp/changed_files || true
                       git reset --hard origin/main
 
                       export DOCKER_BUILDKIT=1
