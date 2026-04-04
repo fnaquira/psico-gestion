@@ -51,12 +51,22 @@ function calcEdad(fechaNacimiento: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
 }
 
+const NIVEL_EDUCATIVO_LABELS: Record<string, string> = {
+  primaria: "Primaria",
+  secundaria: "Secundaria",
+  tecnico: "Técnico",
+  universitario: "Universitario",
+  posgrado: "Posgrado",
+  no_aplica: "No aplica",
+};
+
 const EMPTY_FORM = {
   nombre: "",
   apellido: "",
   fechaNacimiento: "",
   esMenor: false,
   genero: "Otro" as "M" | "F" | "Otro",
+  nivelEducativo: "no_aplica" as "primaria" | "secundaria" | "tecnico" | "universitario" | "posgrado" | "no_aplica",
   telefono: "",
   email: "",
   direccion: "",
@@ -130,6 +140,7 @@ export default function PacientesView() {
       fechaNacimiento: p.fechaNacimiento?.split("T")[0] ?? "",
       esMenor: p.esMenor,
       genero: p.genero,
+      nivelEducativo: (p as any).nivelEducativo ?? "no_aplica",
       telefono: p.telefono ?? "",
       email: p.email ?? "",
       direccion: p.direccion ?? "",
@@ -166,6 +177,7 @@ export default function PacientesView() {
         fechaNacimiento: form.fechaNacimiento,
         esMenor: form.esMenor,
         genero: form.genero,
+        nivelEducativo: form.nivelEducativo,
         telefono: form.telefono,
         email: form.email,
         direccion: form.direccion,
@@ -496,6 +508,29 @@ export default function PacientesView() {
               </div>
             </div>
 
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Nivel Educativo
+              </label>
+              <select
+                value={form.nivelEducativo}
+                onChange={e =>
+                  setForm(f => ({
+                    ...f,
+                    nivelEducativo: e.target.value as typeof form.nivelEducativo,
+                  }))
+                }
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="no_aplica">No aplica</option>
+                <option value="primaria">Primaria</option>
+                <option value="secundaria">Secundaria</option>
+                <option value="tecnico">Técnico</option>
+                <option value="universitario">Universitario</option>
+                <option value="posgrado">Posgrado</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-foreground">
@@ -740,6 +775,10 @@ export default function PacientesView() {
                         ? "Femenino"
                         : "Otro"
                   }
+                />
+                <DetailRow
+                  label="Nivel Educativo"
+                  value={NIVEL_EDUCATIVO_LABELS[(viewingPaciente as any).nivelEducativo ?? "no_aplica"] ?? "—"}
                 />
                 <DetailRow
                   label="Teléfono"

@@ -71,9 +71,19 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
 
       {/* Footer */}
       <div className="px-3 pb-4 border-t border-sidebar-border pt-4 space-y-0.5">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg transition-all">
-          <Settings size={16} strokeWidth={1.75} />
-          <span className="text-sm font-medium">Configuración</span>
+        <button
+          onClick={() => onViewChange('perfil')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+            currentView === 'perfil'
+              ? 'bg-sidebar-primary/15 text-sidebar-primary'
+              : 'text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          }`}
+        >
+          <Settings size={16} strokeWidth={currentView === 'perfil' ? 2 : 1.75} />
+          <span className="text-sm font-medium">Perfil / Config.</span>
+          {currentView === 'perfil' && (
+            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary shrink-0" />
+          )}
         </button>
         <button
           onClick={onLogout}
@@ -84,15 +94,18 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
         </button>
 
         {/* User */}
-        <div className="flex items-center gap-3 px-3 py-3 mt-1 bg-sidebar-accent/60 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-sidebar-primary/25 border border-sidebar-primary/30 flex items-center justify-center text-sidebar-primary text-xs font-bold shrink-0">
+        <button
+          onClick={() => onViewChange('perfil')}
+          className="w-full flex items-center gap-3 px-3 py-3 mt-1 bg-sidebar-accent/60 rounded-lg hover:bg-sidebar-accent transition-colors text-left"
+        >
+          <div className="w-8 h-8 rounded-full bg-sidebar-primary/25 border border-sidebar-primary/30 flex items-center justify-center text-sidebar-primary text-xs font-bold shrink-0 overflow-hidden">
             {user?.nombre ? user.nombre.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : '??'}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-sidebar-foreground truncate">{user?.nombre ?? '—'}</p>
             <p className="text-[11px] text-sidebar-foreground/45 truncate capitalize">{user?.especialidad ?? ''}</p>
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

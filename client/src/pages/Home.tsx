@@ -5,18 +5,20 @@ import DashboardView from '@/components/DashboardView';
 import AgendaView from '@/components/AgendaView';
 import PacientesView from '@/components/PacientesView';
 import PagosView from '@/components/PagosView';
+import ProfileView from '@/components/ProfileView';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { DashboardStats } from '@shared/types';
 
-type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos';
+type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos' | 'perfil';
 
 const VIEW_TITLES: Record<ViewType, { title: string; subtitle: string }> = {
   dashboard: { title: 'Tablero', subtitle: 'Resumen del día' },
   agenda: { title: 'Agenda', subtitle: 'Citas y disponibilidad' },
   pacientes: { title: 'Pacientes', subtitle: 'Gestión de pacientes' },
   pagos: { title: 'Pagos', subtitle: 'Transacciones y deudas' },
+  perfil: { title: 'Mi Perfil', subtitle: 'Configuración de cuenta' },
 };
 
 interface HomeProps {
@@ -65,6 +67,7 @@ export default function Home({ onLogout }: HomeProps) {
       case 'agenda': return <AgendaView />;
       case 'pacientes': return <PacientesView />;
       case 'pagos': return <PagosView />;
+      case 'perfil': return <ProfileView />;
       default: return <DashboardView />;
     }
   };

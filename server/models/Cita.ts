@@ -7,10 +7,11 @@ export interface ICita extends Document {
   fecha: Date;
   horaInicio: string;
   horaFin: string;
-  tipoSesion: "inicial" | "seguimiento" | "evaluacion" | "otra";
+  tipoSesion: "inicial" | "seguimiento" | "evaluacion" | "terapia" | "consejeria" | "orientacion_vocacional" | "otra";
   estado: "programada" | "realizada" | "cancelada" | "no_asistio";
   notas: string;
   montoCita: number;
+  numeroSesion?: number;
   fechaCreacion: Date;
   googleCalendarEventId?: string;
   googleSyncStatus: "pending" | "synced" | "error" | "skipped";
@@ -25,7 +26,7 @@ const CitaSchema = new Schema<ICita>({
   horaFin: { type: String, required: true },
   tipoSesion: {
     type: String,
-    enum: ["inicial", "seguimiento", "evaluacion", "otra"],
+    enum: ["inicial", "seguimiento", "evaluacion", "terapia", "consejeria", "orientacion_vocacional", "otra"],
     default: "seguimiento",
   },
   estado: {
@@ -35,6 +36,7 @@ const CitaSchema = new Schema<ICita>({
   },
   notas: { type: String, default: "" },
   montoCita: { type: Number, default: 0 },
+  numeroSesion: { type: Number },
   fechaCreacion: { type: Date, default: Date.now },
   googleCalendarEventId: { type: String },
   googleSyncStatus: {
