@@ -1,0 +1,43 @@
+name: Deploy repository on push
+on:
+    push:
+        branches:
+            - main
+
+concurrency:
+    group: deploy-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.SSH_HOST }}
+                  username: ${{ secrets.SSH_USERNAME }}
+                  key: ${{ secrets.SSH_KEY }}
+                  command_timeout: 10m
+                  script: |
+                      cd psico-gestion
+                      git diff HEAD..origin/main --name-only > /tmp/changed_files || true
+                      git fetch origin main
+                      git reset --hard origin/main
+
+                      export DOCKER_BUILDKIT=1
+                      export COMPOSE_DOCKER_CLI_BUILD=1
+
+                      if grep -q "package.json\|package-lock.json" /tmp/changed_files 2>/dev/null; then
+                        echo "Dependencias modificadas, build sin caché..."
+                        docker compose build --no-cache
+                      else
+                        docker compose build
+                      fi
+
+                      docker compose up -d --remove-orphans
+
+                      # Limpiar imágenes huérfanas
+                      docker image prune -f > /dev/null 2>&1 &
