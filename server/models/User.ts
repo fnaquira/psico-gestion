@@ -1,5 +1,13 @@
 import { Schema, model, Document, Types } from "mongoose";
 
+export interface IGoogleCalendar {
+  accessToken: string;
+  refreshToken: string;
+  calendarId: string;
+  syncEnabled: boolean;
+  connectedAt: Date;
+}
+
 export interface IUser extends Document {
   tenantId: Types.ObjectId;
   nombre: string;
@@ -9,6 +17,7 @@ export interface IUser extends Document {
   especialidad: "clinica" | "infantil" | "educativa" | "neuropsicologia" | "organizacional" | "otra";
   activo: boolean;
   createdAt: Date;
+  googleCalendar?: IGoogleCalendar;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -24,6 +33,13 @@ const UserSchema = new Schema<IUser>(
       default: "clinica",
     },
     activo: { type: Boolean, default: true },
+    googleCalendar: {
+      accessToken: { type: String },
+      refreshToken: { type: String },
+      calendarId: { type: String, default: "primary" },
+      syncEnabled: { type: Boolean, default: true },
+      connectedAt: { type: Date },
+    },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );

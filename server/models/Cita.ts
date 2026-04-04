@@ -12,6 +12,8 @@ export interface ICita extends Document {
   notas: string;
   montoCita: number;
   fechaCreacion: Date;
+  googleCalendarEventId?: string;
+  googleSyncStatus: "pending" | "synced" | "error" | "skipped";
 }
 
 const CitaSchema = new Schema<ICita>({
@@ -34,6 +36,12 @@ const CitaSchema = new Schema<ICita>({
   notas: { type: String, default: "" },
   montoCita: { type: Number, default: 0 },
   fechaCreacion: { type: Date, default: Date.now },
+  googleCalendarEventId: { type: String },
+  googleSyncStatus: {
+    type: String,
+    enum: ["pending", "synced", "error", "skipped"],
+    default: "skipped",
+  },
 });
 
 CitaSchema.index({ tenantId: 1, fecha: 1, doctorId: 1 });

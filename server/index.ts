@@ -17,6 +17,7 @@ import tutoresRoutes from "./routes/tutores.js";
 import citasRoutes from "./routes/citas.js";
 import pagosRoutes from "./routes/pagos.js";
 import doctoresRoutes from "./routes/doctores.js";
+import googleCalendarRoutes from "./routes/googleCalendar.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +62,7 @@ async function startServer() {
   app.use("/api/citas", authenticate, citasRoutes);
   app.use("/api/pagos", authenticate, pagosRoutes);
   app.use("/api/doctores", authenticate, doctoresRoutes);
+  app.use("/api/google-calendar", googleCalendarRoutes);
 
   // Health check
   app.get("/api/health", (_req, res) => {

@@ -2,6 +2,9 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { Cita } from "../models/Cita.js";
+import { Tenant } from "../models/Tenant.js";
+import { Paciente } from "../models/Paciente.js";
+import { syncCitaToCalendar } from "../services/googleCalendarService.js";
 
 const router = Router();
 
@@ -73,6 +76,17 @@ router.post("/", async (req: Request, res: Response) => {
     { path: "doctorId", select: "nombre" },
   ]);
   res.status(201).json(populated);
+
+  // Sync con Google Calendar (fire-and-forget)
+  const [paciente, tenant] = await Promise.all([
+    Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
+    Tenant.findById(tenantId).select("settings").lean(),
+  ]);
+  if (paciente) {
+    const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
+    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
+  }
 });
 
 // PUT /api/citas/:id
@@ -96,6 +110,17 @@ router.put("/:id", async (req: Request, res: Response) => {
     return;
   }
   res.json(cita);
+
+  // Sync con Google Calendar (fire-and-forget)
+  const [paciente, tenant] = await Promise.all([
+    Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
+    Tenant.findById(tenantId).select("settings").lean(),
+  ]);
+  if (paciente) {
+    const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
+    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
+  }
 });
 
 // DELETE /api/citas/:id
@@ -111,6 +136,13 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return;
   }
   res.json({ ok: true });
+
+  // Sync cancelación con Google Calendar (fire-and-forget)
+  if (cita.googleCalendarEventId) {
+    const tenant = await Tenant.findById(tenantId).select("settings").lean();
+    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    syncCitaToCalendar(cita, "", timezone).catch(console.error);
+  }
 });
 
 export default router;
