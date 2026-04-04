@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { Tenant } from "../models/Tenant.js";
 import { User } from "../models/User.js";
+import { getJwtSecret } from "../env.js";
 
 const router = Router();
 
@@ -30,7 +31,7 @@ function slugify(text: string): string {
 }
 
 function signToken(userId: string, tenantId: string, rol: "admin" | "doctor"): string {
-  return jwt.sign({ userId, tenantId, rol }, process.env.JWT_SECRET!, {
+  return jwt.sign({ userId, tenantId, rol }, getJwtSecret(), {
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   } as jwt.SignOptions);
 }

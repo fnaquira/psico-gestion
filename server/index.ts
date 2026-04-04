@@ -6,11 +6,13 @@ import express from "express";
 
 import { connectDB } from "./db.js";
 import { createApp } from "./app.js";
+import { validateServerEnv } from "./env.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  validateServerEnv();
   await connectDB();
 
   const app = createApp();
