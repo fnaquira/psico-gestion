@@ -37,6 +37,8 @@ const METODO_ICON: Record<string, string> = {
   efectivo: "💵",
   transferencia: "🏦",
   tarjeta: "💳",
+  yape: "📱",
+  plin: "📲",
 };
 
 export default function PagosView() {
@@ -56,7 +58,7 @@ export default function PagosView() {
     pacienteId: "",
     pacienteBusqueda: "",
     monto: "",
-    metodo: "efectivo" as "efectivo" | "transferencia" | "tarjeta",
+    metodo: "efectivo" as "efectivo" | "transferencia" | "tarjeta" | "yape" | "plin",
     tipoPago: "al_llegar" as "al_llegar" | "adelantado" | "deuda",
     notas: "",
   });
@@ -123,8 +125,8 @@ export default function PagosView() {
       pacienteId: "",
       pacienteBusqueda: "",
       monto: "",
-      metodo: "efectivo",
-      tipoPago: "al_llegar",
+      metodo: "efectivo" as const,
+      tipoPago: "al_llegar" as const,
       notas: "",
     });
     setSubmitError("");
@@ -346,9 +348,11 @@ export default function PagosView() {
                 }
                 className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-card transition-shadow"
               >
-                <option value="efectivo">Efectivo</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="tarjeta">Tarjeta</option>
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="transferencia">🏦 Transferencia</option>
+                <option value="tarjeta">💳 Tarjeta</option>
+                <option value="yape">📱 Yape</option>
+                <option value="plin">📲 Plin</option>
               </select>
             </Field>
             <Field label="Tipo de Pago">

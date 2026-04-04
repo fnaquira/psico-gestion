@@ -14,10 +14,13 @@ const citaSchema = z.object({
   fecha: z.string(),
   horaInicio: z.string().regex(/^\d{2}:\d{2}$/),
   horaFin: z.string().regex(/^\d{2}:\d{2}$/),
-  tipoSesion: z.enum(["inicial", "seguimiento", "evaluacion", "otra"]).default("seguimiento"),
+  tipoSesion: z
+    .enum(["inicial", "seguimiento", "evaluacion", "terapia", "consejeria", "orientacion_vocacional", "otra"])
+    .default("seguimiento"),
   estado: z.enum(["programada", "realizada", "cancelada", "no_asistio"]).default("programada"),
   notas: z.string().default(""),
   montoCita: z.number().min(0).default(0),
+  numeroSesion: z.number().int().positive().optional(),
 });
 
 /** Remap populated pacienteId/doctorId → paciente/doctor to match CitaDTO */
