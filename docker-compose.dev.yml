@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     # TSX_TSCONFIG_PATH avoids a tsx warning; --poll enables inotify-based watching on Windows/Docker volumes
-    command: npx tsx watch --poll server/index.ts
+    command: npx tsx watch server/index.ts
     ports:
       - "3001:3001"
     environment:

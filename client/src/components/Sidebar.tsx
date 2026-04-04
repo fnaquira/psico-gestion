@@ -11,7 +11,7 @@ interface SidebarProps {
 export default function Sidebar({ currentView, onViewChange, onLogout }: SidebarProps) {
   const { user } = useAuth();
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'dashboard', label: 'Tablero', icon: BarChart3 },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'pacientes', label: 'Pacientes', icon: Users },
     { id: 'pagos', label: 'Pagos', icon: CreditCard },

@@ -20,14 +20,28 @@ const citaSchema = z.object({
   montoCita: z.number().min(0).default(0),
 });
 
-// GET /api/citas?fecha=YYYY-MM-DD&doctorId=xxx
+/** Remap populated pacienteId/doctorId → paciente/doctor to match CitaDTO */
+function mapCitaDTO(doc: any) {
+  const { pacienteId, doctorId, ...rest } = doc;
+  return {
+    ...rest,
+    pacienteId: pacienteId?._id ?? pacienteId ?? null,
+    paciente: pacienteId && typeof pacienteId === "object" ? pacienteId : undefined,
+    doctorId: doctorId?._id ?? doctorId ?? null,
+    doctor: doctorId && typeof doctorId === "object" ? doctorId : undefined,
+  };
+}
+
+// GET /api/citas?fecha=YYYY-MM-DD&desde=&hasta=&doctorId=xxx
 router.get("/", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const { fecha, doctorId } = req.query as Record<string, string>;
+  const { fecha, desde, hasta, doctorId } = req.query as Record<string, string>;
 
   const filter: Record<string, unknown> = { tenantId };
 
-  if (fecha) {
+  if (desde && hasta) {
+    filter.fecha = { $gte: new Date(desde), $lt: new Date(hasta) };
+  } else if (fecha) {
     const start = new Date(fecha);
     const end = new Date(start.getTime() + 86400000);
     filter.fecha = { $gte: start, $lt: end };
@@ -41,7 +55,7 @@ router.get("/", async (req: Request, res: Response) => {
     .sort({ horaInicio: 1 })
     .lean();
 
-  res.json(citas);
+  res.json(citas.map(mapCitaDTO));
 });
 
 // GET /api/citas/:id
@@ -55,7 +69,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     res.status(404).json({ error: "Cita no encontrada" });
     return;
   }
-  res.json(cita);
+  res.json(mapCitaDTO(cita));
 });
 
 // POST /api/citas
@@ -75,7 +89,7 @@ router.post("/", async (req: Request, res: Response) => {
     { path: "pacienteId", select: "nombre apellido" },
     { path: "doctorId", select: "nombre" },
   ]);
-  res.status(201).json(populated);
+  res.status(201).json(mapCitaDTO(populated.toObject()));
 
   // Sync con Google Calendar (fire-and-forget)
   const [paciente, tenant] = await Promise.all([
@@ -109,7 +123,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     res.status(404).json({ error: "Cita no encontrada" });
     return;
   }
-  res.json(cita);
+  res.json(mapCitaDTO(cita.toObject()));
 
   // Sync con Google Calendar (fire-and-forget)
   const [paciente, tenant] = await Promise.all([
