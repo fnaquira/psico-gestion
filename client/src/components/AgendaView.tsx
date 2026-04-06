@@ -49,9 +49,9 @@ const STATUS_DOT: Record<string, string> = {
   no_asistio: "bg-amber-400",
 };
 
-const TIME_SLOTS = [
-  "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00",
-];
+const TIME_SLOTS = Array.from({ length: 24 }, (_, i) =>
+  `${String(i).padStart(2, "0")}:00`,
+);
 const LUNCH = "12:00";
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
