@@ -71,6 +71,7 @@ const EMPTY_FORM = {
   email: "",
   direccion: "",
   notasClinicas: "",
+  motivoConsulta: "",
   // Tutor fields (when esMenor)
   tutorNombre: "",
   tutorApellido: "",
@@ -145,6 +146,7 @@ export default function PacientesView() {
       email: p.email ?? "",
       direccion: p.direccion ?? "",
       notasClinicas: p.notasClinicas ?? "",
+      motivoConsulta: p.motivoConsulta ?? "",
       tutorNombre: p.tutor?.nombre ?? "",
       tutorApellido: p.tutor?.apellido ?? "",
       tutorRelacion: p.tutor?.relacion ?? "padre",
@@ -182,6 +184,7 @@ export default function PacientesView() {
         email: form.email,
         direccion: form.direccion,
         notasClinicas: form.notasClinicas,
+        motivoConsulta: form.motivoConsulta,
       };
 
       if (form.esMenor && form.tutorNombre && form.tutorApellido) {
@@ -576,6 +579,20 @@ export default function PacientesView() {
 
             <div>
               <label className="text-sm font-medium text-foreground">
+                Motivo de Consulta
+              </label>
+              <textarea
+                value={form.motivoConsulta}
+                onChange={e =>
+                  setForm(f => ({ ...f, motivoConsulta: e.target.value }))
+                }
+                rows={2}
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground">
                 Notas Clínicas
               </label>
               <textarea
@@ -797,6 +814,17 @@ export default function PacientesView() {
                   value={viewingPaciente.esMenor ? "Sí" : "No"}
                 />
               </div>
+
+              {viewingPaciente.motivoConsulta && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                    Motivo de Consulta
+                  </p>
+                  <p className="text-sm text-foreground bg-muted/40 rounded-lg p-3">
+                    {viewingPaciente.motivoConsulta}
+                  </p>
+                </div>
+              )}
 
               {viewingPaciente.notasClinicas && (
                 <div>
