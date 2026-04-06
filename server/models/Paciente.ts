@@ -11,6 +11,7 @@ export interface IPaciente extends Document {
   email: string;
   direccion: string;
   notasClinicas: string;
+  motivoConsulta: string;
   estado: "activo" | "inactivo" | "en_deuda";
   tutorId: Types.ObjectId | null;
   doctorAsignado: Types.ObjectId | null;
@@ -28,6 +29,7 @@ const PacienteSchema = new Schema<IPaciente>({
   email: { type: String, default: "", lowercase: true, trim: true },
   direccion: { type: String, default: "" },
   notasClinicas: { type: String, default: "" },
+  motivoConsulta: { type: String, default: "" },
   estado: { type: String, enum: ["activo", "inactivo", "en_deuda"], default: "activo" },
   tutorId: { type: Schema.Types.ObjectId, ref: "Tutor", default: null },
   doctorAsignado: { type: Schema.Types.ObjectId, ref: "User", default: null },

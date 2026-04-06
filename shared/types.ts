@@ -55,6 +55,7 @@ export interface PacienteDTO {
   email: string;
   direccion: string;
   notasClinicas: string;
+  motivoConsulta: string;
   estado: "activo" | "inactivo" | "en_deuda";
   tutor?: TutorDTO;
   doctorAsignado?: string;

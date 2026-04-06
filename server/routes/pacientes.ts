@@ -16,6 +16,7 @@ const pacienteSchema = z.object({
   email: z.string().default(""),
   direccion: z.string().default(""),
   notasClinicas: z.string().default(""),
+  motivoConsulta: z.string().default(""),
   estado: z.enum(["activo", "inactivo", "en_deuda"]).default("activo"),
   doctorAsignado: z.string().nullable().default(null),
   tutor: z
