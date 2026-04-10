@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, CreditCard, BarChart3, Settings, LogOut, HeartPulse } from 'lucide-react';
+import { Calendar, Users, CreditCard, BarChart3, Settings, Settings2, BookOpen, LogOut, HeartPulse } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -15,6 +15,8 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'pacientes', label: 'Pacientes', icon: Users },
     { id: 'pagos', label: 'Pagos', icon: CreditCard },
+    { id: 'configuracion', label: 'Configuración', icon: Settings2 },
+    { id: 'manual-gcal', label: 'Manual GCal', icon: BookOpen },
   ];
 
   return (
@@ -80,7 +82,7 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
           }`}
         >
           <Settings size={16} strokeWidth={currentView === 'perfil' ? 2 : 1.75} />
-          <span className="text-sm font-medium">Perfil / Config.</span>
+          <span className="text-sm font-medium">Perfil</span>
           {currentView === 'perfil' && (
             <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary shrink-0" />
           )}
