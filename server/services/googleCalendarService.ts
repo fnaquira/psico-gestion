@@ -19,6 +19,9 @@ function encrypt(text: string): string {
 }
 
 function decrypt(encryptedText: string): string {
+  if (!encryptedText || !encryptedText.includes(":")) {
+    throw new Error("Formato de valor cifrado inválido");
+  }
   const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? "";
   if (!encryptionKey) throw new Error("TOKEN_ENCRYPTION_KEY no definida");
   const key = Buffer.from(encryptionKey, "hex");
