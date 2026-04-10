@@ -1,11 +1,13 @@
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IGoogleCalendar {
-  accessToken: string;
-  refreshToken: string;
-  calendarId: string;
+  googleClientId?: string;     // AES-256 encrypted
+  googleClientSecret?: string; // AES-256 encrypted
+  accessToken?: string;        // AES-256 encrypted
+  refreshToken?: string;       // AES-256 encrypted
+  calendarId?: string;
   syncEnabled: boolean;
-  connectedAt: Date;
+  connectedAt?: Date;
 }
 
 export interface IUser extends Document {
@@ -34,6 +36,8 @@ const UserSchema = new Schema<IUser>(
     },
     activo: { type: Boolean, default: true },
     googleCalendar: {
+      googleClientId: { type: String },
+      googleClientSecret: { type: String },
       accessToken: { type: String },
       refreshToken: { type: String },
       calendarId: { type: String, default: "primary" },
