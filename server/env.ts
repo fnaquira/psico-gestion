@@ -13,6 +13,8 @@ function requireEnv(name: string): string {
 export function validateServerEnv(): void {
   requireEnv("MONGODB_URI");
   requireEnv("JWT_SECRET");
+  requireEnv("TOKEN_ENCRYPTION_KEY");
+  requireEnv("GOOGLE_REDIRECT_URI");
 }
 
 export function getJwtSecret(): string {
