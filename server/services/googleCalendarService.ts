@@ -6,12 +6,12 @@ import { Cita, ICita } from "../models/Cita";
 // ─── Cifrado / Descifrado ────────────────────────────────────────────────────
 
 const ALGORITHM = "aes-256-cbc";
-const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY ?? "";
 const IV_LENGTH = 16;
 
 function encrypt(text: string): string {
-  if (!ENCRYPTION_KEY) throw new Error("TOKEN_ENCRYPTION_KEY no definida");
-  const key = Buffer.from(ENCRYPTION_KEY, "hex");
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? "";
+  if (!encryptionKey) throw new Error("TOKEN_ENCRYPTION_KEY no definida");
+  const key = Buffer.from(encryptionKey, "hex");
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
@@ -19,8 +19,9 @@ function encrypt(text: string): string {
 }
 
 function decrypt(encryptedText: string): string {
-  if (!ENCRYPTION_KEY) throw new Error("TOKEN_ENCRYPTION_KEY no definida");
-  const key = Buffer.from(ENCRYPTION_KEY, "hex");
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? "";
+  if (!encryptionKey) throw new Error("TOKEN_ENCRYPTION_KEY no definida");
+  const key = Buffer.from(encryptionKey, "hex");
   const [ivHex, encryptedHex] = encryptedText.split(":");
   const iv = Buffer.from(ivHex, "hex");
   const encryptedBuffer = Buffer.from(encryptedHex, "hex");

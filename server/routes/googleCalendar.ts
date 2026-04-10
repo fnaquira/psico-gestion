@@ -1,20 +1,18 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import { authenticate } from "../middleware/auth";
 import { User } from "../models/User";
-import { Tenant } from "../models/Tenant";
 import {
   getAuthUrl,
   createOAuth2Client,
   saveTokens,
   disconnectCalendar,
+  saveCredentials,
   getDecryptedCredentials,
 } from "../services/googleCalendarService";
 
 const router = Router();
 
 // GET /api/google-calendar/status
-// Devuelve si el doctor actual tiene GCal vinculado
 router.get("/status", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user!.userId).select("googleCalendar");
@@ -39,8 +37,35 @@ router.get("/status", authenticate, async (req, res) => {
   }
 });
 
+// GET /api/google-calendar/credentials
+router.get("/credentials", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user!.userId).select("googleCalendar");
+    const configured = !!(
+      user?.googleCalendar?.googleClientId && user?.googleCalendar?.googleClientSecret
+    );
+    res.json({ configured });
+  } catch {
+    res.status(500).json({ error: "Error al obtener estado de credenciales" });
+  }
+});
+
+// PUT /api/google-calendar/credentials
+router.put("/credentials", authenticate, async (req, res) => {
+  const { clientId, clientSecret } = req.body;
+  if (!clientId || !clientSecret) {
+    res.status(400).json({ error: "clientId y clientSecret son requeridos" });
+    return;
+  }
+  try {
+    await saveCredentials(req.user!.userId, clientId, clientSecret);
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Error al guardar credenciales" });
+  }
+});
+
 // GET /api/google-calendar/auth-url
-// Genera URL de consentimiento OAuth de Google
 router.get("/auth-url", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user!.userId).select("googleCalendar");
@@ -51,11 +76,10 @@ router.get("/auth-url", authenticate, async (req, res) => {
 
     const creds = getDecryptedCredentials(user);
     if (!creds) {
-      res.status(400).json({ error: "Credenciales de Google no configuradas" });
+      res.status(400).json({ error: "Primero configurá tus credenciales de Google" });
       return;
     }
 
-    // El state incluye el JWT del usuario para identificarlo en el callback
     const state = Buffer.from(
       JSON.stringify({ userId: req.user!.userId, tenantId: req.user!.tenantId }),
     ).toString("base64url");
@@ -63,17 +87,16 @@ router.get("/auth-url", authenticate, async (req, res) => {
     const url = getAuthUrl(state, creds.clientId, creds.clientSecret);
     res.json({ url });
   } catch {
-    res.status(500).json({ error: "Error al generar URL de autenticación" });
+    res.status(500).json({ error: "Error al generar URL de autorización" });
   }
 });
 
 // GET /api/google-calendar/callback
-// Recibe el código de autorización de Google y guarda los tokens
 router.get("/callback", async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    res.redirect(`/configuracion?gcal=error&reason=${error}`);
+    res.redirect(`/?view=configuracion&gcal=error&reason=${error}`);
     return;
   }
 
@@ -94,9 +117,14 @@ router.get("/callback", async (req, res) => {
 
   try {
     const user = await User.findById(userId).select("googleCalendar");
-    const creds = user ? getDecryptedCredentials(user) : null;
+    if (!user) {
+      res.redirect("/?view=configuracion&gcal=error&reason=user_not_found");
+      return;
+    }
+
+    const creds = getDecryptedCredentials(user);
     if (!creds) {
-      res.redirect("/configuracion?gcal=error&reason=no_credentials");
+      res.redirect("/?view=configuracion&gcal=error&reason=no_credentials");
       return;
     }
 
@@ -104,20 +132,19 @@ router.get("/callback", async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code as string);
 
     if (!tokens.access_token || !tokens.refresh_token) {
-      res.redirect("/configuracion?gcal=error&reason=no_tokens");
+      res.redirect("/?view=configuracion&gcal=error&reason=no_tokens");
       return;
     }
 
     await saveTokens(userId, tokens.access_token, tokens.refresh_token);
-    res.redirect("/configuracion?gcal=success");
+    res.redirect("/?view=configuracion&gcal=success");
   } catch (err) {
     console.error("[GCal] Error en callback:", err);
-    res.redirect("/configuracion?gcal=error&reason=server");
+    res.redirect("/?view=configuracion&gcal=error&reason=server");
   }
 });
 
 // PATCH /api/google-calendar/toggle-sync
-// Activa o desactiva la sincronización sin desconectar
 router.patch("/toggle-sync", authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user!.userId);
@@ -138,7 +165,6 @@ router.patch("/toggle-sync", authenticate, async (req, res) => {
 });
 
 // DELETE /api/google-calendar/disconnect
-// Revoca y elimina la vinculación
 router.delete("/disconnect", authenticate, async (req, res) => {
   try {
     await disconnectCalendar(req.user!.userId);
