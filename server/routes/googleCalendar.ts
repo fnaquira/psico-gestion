@@ -96,7 +96,7 @@ router.get("/callback", async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    res.redirect(`/?view=configuracion&gcal=error&reason=${error}`);
+    res.redirect(`/?view=configuracion&gcal=error&reason=${encodeURIComponent(error as string)}`);
     return;
   }
 
