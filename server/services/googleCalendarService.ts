@@ -105,6 +105,7 @@ export async function disconnectCalendar(userId: string): Promise<void> {
 async function getAuthenticatedClient(user: IUser) {
   if (
     !user.googleCalendar?.accessToken ||
+    !user.googleCalendar?.refreshToken ||
     !user.googleCalendar?.googleClientId ||
     !user.googleCalendar?.googleClientSecret
   ) {
@@ -117,7 +118,7 @@ async function getAuthenticatedClient(user: IUser) {
   const oauth2Client = createOAuth2Client(creds.clientId, creds.clientSecret);
 
   const accessToken = decrypt(user.googleCalendar.accessToken);
-  const refreshToken = decrypt(user.googleCalendar.refreshToken!);
+  const refreshToken = decrypt(user.googleCalendar.refreshToken);
 
   oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
