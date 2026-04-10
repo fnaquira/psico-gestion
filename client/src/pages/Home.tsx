@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, CalendarDays, Clock, RefreshCw, Users } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import DashboardView from '@/components/DashboardView';
@@ -6,12 +6,14 @@ import AgendaView from '@/components/AgendaView';
 import PacientesView from '@/components/PacientesView';
 import PagosView from '@/components/PagosView';
 import ProfileView from '@/components/ProfileView';
+import ConfiguracionView from '@/components/ConfiguracionView';
+import ManualGCalView from '@/components/ManualGCalView';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { DashboardStats } from '@shared/types';
 
-type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos' | 'perfil';
+type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos' | 'perfil' | 'configuracion' | 'manual-gcal';
 
 const VIEW_TITLES: Record<ViewType, { title: string; subtitle: string }> = {
   dashboard: { title: 'Tablero', subtitle: 'Resumen del día' },
@@ -19,6 +21,8 @@ const VIEW_TITLES: Record<ViewType, { title: string; subtitle: string }> = {
   pacientes: { title: 'Pacientes', subtitle: 'Gestión de pacientes' },
   pagos: { title: 'Pagos', subtitle: 'Transacciones y deudas' },
   perfil: { title: 'Mi Perfil', subtitle: 'Configuración de cuenta' },
+  configuracion: { title: 'Configuración', subtitle: 'Integraciones y ajustes' },
+  'manual-gcal': { title: 'Manual GCal', subtitle: 'Cómo conectar Google Calendar' },
 };
 
 interface HomeProps {
@@ -31,6 +35,33 @@ export default function Home({ onLogout }: HomeProps) {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState('');
   const [summaryStats, setSummaryStats] = useState<DashboardStats | null>(null);
+  const [gcalStatus, setGcalStatus] = useState<"success" | "error" | null>(null);
+  const [gcalErrorReason, setGcalErrorReason] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get("view");
+    const gcal = params.get("gcal") as "success" | "error" | null;
+    const reason = params.get("reason");
+
+    if (view === "configuracion") {
+      setCurrentView("configuracion");
+      if (gcal === "success" || gcal === "error") {
+        setGcalStatus(gcal);
+        setGcalErrorReason(reason);
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!gcalStatus) return;
+    const t = setTimeout(() => {
+      setGcalStatus(null);
+      setGcalErrorReason(null);
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [gcalStatus]);
 
   const today = new Date();
   const formattedDate = today.toLocaleDateString('es-CL', {
@@ -68,6 +99,15 @@ export default function Home({ onLogout }: HomeProps) {
       case 'pacientes': return <PacientesView />;
       case 'pagos': return <PagosView />;
       case 'perfil': return <ProfileView />;
+      case 'configuracion':
+        return (
+          <ConfiguracionView
+            gcalStatus={gcalStatus}
+            gcalErrorReason={gcalErrorReason}
+            onNavigateToManual={() => setCurrentView('manual-gcal')}
+          />
+        );
+      case 'manual-gcal': return <ManualGCalView />;
       default: return <DashboardView />;
     }
   };
