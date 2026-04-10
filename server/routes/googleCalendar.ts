@@ -8,6 +8,7 @@ import {
   createOAuth2Client,
   saveTokens,
   disconnectCalendar,
+  getDecryptedCredentials,
 } from "../services/googleCalendarService";
 
 const router = Router();
@@ -40,14 +41,30 @@ router.get("/status", authenticate, async (req, res) => {
 
 // GET /api/google-calendar/auth-url
 // Genera URL de consentimiento OAuth de Google
-router.get("/auth-url", authenticate, (req, res) => {
-  // El state incluye el JWT del usuario para identificarlo en el callback
-  const state = Buffer.from(
-    JSON.stringify({ userId: req.user!.userId, tenantId: req.user!.tenantId }),
-  ).toString("base64url");
+router.get("/auth-url", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user!.userId).select("googleCalendar");
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
 
-  const url = getAuthUrl(state);
-  res.json({ url });
+    const creds = getDecryptedCredentials(user);
+    if (!creds) {
+      res.status(400).json({ error: "Credenciales de Google no configuradas" });
+      return;
+    }
+
+    // El state incluye el JWT del usuario para identificarlo en el callback
+    const state = Buffer.from(
+      JSON.stringify({ userId: req.user!.userId, tenantId: req.user!.tenantId }),
+    ).toString("base64url");
+
+    const url = getAuthUrl(state, creds.clientId, creds.clientSecret);
+    res.json({ url });
+  } catch {
+    res.status(500).json({ error: "Error al generar URL de autenticación" });
+  }
 });
 
 // GET /api/google-calendar/callback
@@ -76,7 +93,14 @@ router.get("/callback", async (req, res) => {
   }
 
   try {
-    const oauth2Client = createOAuth2Client();
+    const user = await User.findById(userId).select("googleCalendar");
+    const creds = user ? getDecryptedCredentials(user) : null;
+    if (!creds) {
+      res.redirect("/configuracion?gcal=error&reason=no_credentials");
+      return;
+    }
+
+    const oauth2Client = createOAuth2Client(creds.clientId, creds.clientSecret);
     const { tokens } = await oauth2Client.getToken(code as string);
 
     if (!tokens.access_token || !tokens.refresh_token) {
