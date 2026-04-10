@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Calendar, CheckCircle2, XCircle, RefreshCw, Unlink, AlertCircle } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Unlink,
+  AlertCircle,
+  Info,
+} from "lucide-react";
 import api from "@/lib/api";
 
 interface GCalStatus {
@@ -9,7 +17,12 @@ interface GCalStatus {
   connectedAt?: string;
 }
 
-export function GoogleCalendarSettings() {
+interface Props {
+  gcalStatus?: "success" | "error" | null;
+  gcalErrorReason?: string | null;
+}
+
+export function GoogleCalendarSettings({ gcalStatus, gcalErrorReason }: Props) {
   const [status, setStatus] = useState<GCalStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -17,19 +30,6 @@ export function GoogleCalendarSettings() {
 
   useEffect(() => {
     fetchStatus();
-
-    // Detectar retorno del OAuth (query param ?gcal=success|error)
-    const params = new URLSearchParams(window.location.search);
-    const gcal = params.get("gcal");
-    if (gcal === "success") {
-      setError(null);
-      // Limpiar el query param sin recargar
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (gcal === "error") {
-      const reason = params.get("reason");
-      setError(`No se pudo vincular Google Calendar${reason ? `: ${reason}` : ""}`);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
   }, []);
 
   async function fetchStatus() {
@@ -49,8 +49,10 @@ export function GoogleCalendarSettings() {
     try {
       const { data } = await api.get<{ url: string }>("/google-calendar/auth-url");
       window.location.href = data.url;
-    } catch {
-      setError("No se pudo iniciar la vinculación con Google");
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ?? "No se pudo iniciar la vinculación con Google";
+      setError(msg);
       setActionLoading(false);
     }
   }
@@ -59,8 +61,10 @@ export function GoogleCalendarSettings() {
     setActionLoading(true);
     setError(null);
     try {
-      const { data } = await api.patch<{ syncEnabled: boolean }>("/google-calendar/toggle-sync");
-      setStatus(prev => prev ? { ...prev, syncEnabled: data.syncEnabled } : prev);
+      const { data } = await api.patch<{ syncEnabled: boolean }>(
+        "/google-calendar/toggle-sync",
+      );
+      setStatus(prev => (prev ? { ...prev, syncEnabled: data.syncEnabled } : prev));
     } catch {
       setError("Error al cambiar el estado de sincronización");
     } finally {
@@ -69,7 +73,12 @@ export function GoogleCalendarSettings() {
   }
 
   async function handleDisconnect() {
-    if (!confirm("¿Desconectar Google Calendar? Las citas existentes no se eliminarán del calendario.")) return;
+    if (
+      !confirm(
+        "¿Desconectar Google Calendar? Las citas existentes no se eliminarán del calendario.",
+      )
+    )
+      return;
     setActionLoading(true);
     setError(null);
     try {
@@ -106,7 +115,24 @@ export function GoogleCalendarSettings() {
         </div>
       </div>
 
-      {/* Error banner */}
+      {/* OAuth result banner */}
+      {gcalStatus === "success" && (
+        <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-emerald-600 dark:text-emerald-400 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Google Calendar vinculado correctamente.</span>
+        </div>
+      )}
+      {gcalStatus === "error" && (
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            No se pudo vincular Google Calendar
+            {gcalErrorReason ? `: ${gcalErrorReason}` : ""}
+          </span>
+        </div>
+      )}
+
+      {/* Internal error banner */}
       {error && (
         <div className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-destructive text-sm">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -116,7 +142,6 @@ export function GoogleCalendarSettings() {
 
       {status?.connected ? (
         <>
-          {/* Estado conectado */}
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">Vinculado</span>
@@ -127,7 +152,6 @@ export function GoogleCalendarSettings() {
             )}
           </div>
 
-          {/* Sync toggle */}
           <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
             <div>
               <p className="text-sm font-medium">Sincronización automática</p>
@@ -154,7 +178,6 @@ export function GoogleCalendarSettings() {
             </button>
           </div>
 
-          {/* Desconectar */}
           <button
             onClick={handleDisconnect}
             disabled={actionLoading}
@@ -166,7 +189,6 @@ export function GoogleCalendarSettings() {
         </>
       ) : (
         <>
-          {/* Estado desconectado */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <XCircle className="h-4 w-4" />
             <span>No vinculado</span>
