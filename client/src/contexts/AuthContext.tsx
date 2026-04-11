@@ -22,6 +22,7 @@ interface RegisterData {
   email: string;
   especialidad: string;
   password: string;
+  timezone: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

@@ -3,6 +3,7 @@ import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import AuthLayout from '@/components/AuthLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { TIMEZONES, resolveTimezone } from '../lib/timezones';
 
 const ESPECIALIDADES: { value: string; label: string }[] = [
   { value: 'clinica', label: 'Psicología Clínica' },
@@ -25,6 +26,7 @@ export default function RegisterPage() {
     especialidad: '',
     password: '',
     confirmPassword: '',
+    timezone: resolveTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone),
   });
   const [error, setError] = useState('');
 
@@ -46,6 +48,7 @@ export default function RegisterPage() {
         email: form.email,
         especialidad: form.especialidad,
         password: form.password,
+        timezone: form.timezone,
       });
     } catch (err: any) {
       setError(err.response?.data?.error ?? 'Error al crear la cuenta. Intentá de nuevo.');
@@ -103,6 +106,21 @@ export default function RegisterPage() {
             <option value="">Seleccioná tu especialidad</option>
             {ESPECIALIDADES.map(e => (
               <option key={e.value} value={e.value}>{e.label}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Zona horaria">
+          <select
+            value={form.timezone}
+            onChange={set('timezone')}
+            required
+            className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-shadow bg-white"
+          >
+            {TIMEZONES.map(tz => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
             ))}
           </select>
         </Field>
