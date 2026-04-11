@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import api from "@/lib/api";
-import type { CitaDTO, UserDTO, PacienteDTO } from "@shared/types";
+import type { CitaDTO, UserDTO, PacienteDTO, BloqueoDTO } from "@shared/types";
 
 type CalendarView = "dia" | "semana" | "mes";
 
@@ -128,6 +128,7 @@ export default function AgendaView() {
     return d;
   });
   const [citas, setCitas] = useState<CitaDTO[]>([]);
+  const [bloqueos, setBloqueos] = useState<BloqueoDTO[]>([]);
   const [doctors, setDoctors] = useState<UserDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -176,11 +177,13 @@ export default function AgendaView() {
         hasta = toDateStr(last);
       }
 
-      const [citasData] = await Promise.all([
+      const [citasData, bloqueosData] = await Promise.all([
         fetchCitasRange(desde, hasta),
+        api.get<BloqueoDTO[]>("/bloqueos", { params: { desde, hasta } }).then(r => r.data).catch(() => [] as BloqueoDTO[]),
         doctors.length === 0 ? fetchDoctors() : Promise.resolve(),
       ]);
       setCitas(citasData);
+      setBloqueos(bloqueosData);
     } catch (err) {
       console.error("Error loading agenda:", err);
     } finally {
@@ -248,6 +251,18 @@ export default function AgendaView() {
       c => c.fecha.slice(0, 10) === ds && c.doctorId === doctorId && c.horaInicio === time,
     );
   };
+
+  const isBlocked = (d: Date, doctorId: string, time: string): boolean =>
+    bloqueos.some(
+      b =>
+        b.doctorId === doctorId &&
+        b.fecha.slice(0, 10) === toDateStr(d) &&
+        b.horaInicio <= time &&
+        b.horaFin > time,
+    );
+
+  const dayHasBloqueos = (d: Date): boolean =>
+    bloqueos.some(b => b.fecha.slice(0, 10) === toDateStr(d));
 
   // ---- Dialog ----
 
@@ -366,16 +381,25 @@ export default function AgendaView() {
               </div>
               {docList.map(doc => {
                 const appt = appointmentMap.get(`${doc._id}-${time}`);
+                const blocked = !isLunch && !appt && isBlocked(day, doc._id, time);
                 const typeLabel = appt ? (TYPE_LABELS[appt.tipoSesion] ?? appt.tipoSesion) : "";
                 const statusKey = appt?.estado ?? "";
                 return (
                   <div
                     key={doc._id}
-                    className={`p-2 border-l border-border min-h-[58px] ${isLunch ? "bg-muted/30" : "hover:bg-accent/30 cursor-pointer transition-colors"}`}
-                    onClick={() => { if (!isLunch && !appt) openNewCita(toDateStr(day), doc._id, time); }}
+                    className={`p-2 border-l border-border min-h-[58px] ${
+                      isLunch || blocked
+                        ? "bg-muted/30"
+                        : "hover:bg-accent/30 cursor-pointer transition-colors"
+                    }`}
+                    onClick={() => { if (!isLunch && !appt && !blocked) openNewCita(toDateStr(day), doc._id, time); }}
                   >
                     {isLunch ? (
                       <span className="text-[11px] text-muted-foreground/60 font-medium">Almuerzo</span>
+                    ) : blocked ? (
+                      <div className="p-2 rounded-lg text-xs border bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed select-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500">
+                        No disponible
+                      </div>
                     ) : appt ? (
                       <div
                         className={`p-2 rounded-lg text-xs border cursor-pointer ${TYPE_STYLES[typeLabel] ?? "bg-muted border-border text-foreground"}`}
@@ -450,14 +474,27 @@ export default function AgendaView() {
                 const citasSlot = isLunch
                   ? []
                   : citas.filter(c => c.fecha.slice(0, 10) === toDateStr(d) && c.horaInicio === time);
+                // For week view we check blocks across all doctors (any doctor blocked = show block)
+                const slotBlocked = !isLunch && citasSlot.length === 0 &&
+                  bloqueos.some(
+                    b => b.fecha.slice(0, 10) === toDateStr(d) && b.horaInicio <= time && b.horaFin > time,
+                  );
                 return (
                   <div
                     key={i}
-                    className={`p-1.5 border-l border-border min-h-[52px] ${isLunch ? "bg-muted/30" : "hover:bg-accent/20 cursor-pointer transition-colors"}`}
-                    onClick={() => { if (!isLunch && citasSlot.length === 0) openNewCita(toDateStr(d), undefined, time); }}
+                    className={`p-1.5 border-l border-border min-h-[52px] ${
+                      isLunch || slotBlocked
+                        ? "bg-muted/30"
+                        : "hover:bg-accent/20 cursor-pointer transition-colors"
+                    }`}
+                    onClick={() => { if (!isLunch && citasSlot.length === 0 && !slotBlocked) openNewCita(toDateStr(d), undefined, time); }}
                   >
                     {isLunch ? (
                       <span className="text-[10px] text-muted-foreground/60">—</span>
+                    ) : slotBlocked ? (
+                      <div className="px-1.5 py-1 rounded text-[10px] bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed select-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500">
+                        No disponible
+                      </div>
                     ) : (
                       citasSlot.map(appt => {
                         const typeLabel = TYPE_LABELS[appt.tipoSesion] ?? appt.tipoSesion;
@@ -535,6 +572,15 @@ export default function AgendaView() {
                     {d.getDate()}
                   </span>
                 </div>
+
+                {/* Bloqueo badge */}
+                {isCurrentMonth && dayHasBloqueos(d) && (
+                  <div className="mb-0.5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 border border-slate-200 text-slate-400 select-none dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500">
+                      Bloqueado
+                    </span>
+                  </div>
+                )}
 
                 {/* Citas chips */}
                 <div className="space-y-0.5">

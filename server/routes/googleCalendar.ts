@@ -6,8 +6,6 @@ import {
   createOAuth2Client,
   saveTokens,
   disconnectCalendar,
-  saveCredentials,
-  getDecryptedCredentials,
 } from "../services/googleCalendarService";
 
 const router = Router();
@@ -37,54 +35,14 @@ router.get("/status", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/google-calendar/credentials
-router.get("/credentials", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user!.userId).select("googleCalendar");
-    const configured = !!(
-      user?.googleCalendar?.googleClientId && user?.googleCalendar?.googleClientSecret
-    );
-    res.json({ configured });
-  } catch {
-    res.status(500).json({ error: "Error al obtener estado de credenciales" });
-  }
-});
-
-// PUT /api/google-calendar/credentials
-router.put("/credentials", authenticate, async (req, res) => {
-  const { clientId, clientSecret } = req.body;
-  if (!clientId || !clientSecret) {
-    res.status(400).json({ error: "clientId y clientSecret son requeridos" });
-    return;
-  }
-  try {
-    await saveCredentials(req.user!.userId, clientId, clientSecret);
-    res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "Error al guardar credenciales" });
-  }
-});
-
 // GET /api/google-calendar/auth-url
 router.get("/auth-url", authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user!.userId).select("googleCalendar");
-    if (!user) {
-      res.status(404).json({ error: "Usuario no encontrado" });
-      return;
-    }
-
-    const creds = getDecryptedCredentials(user);
-    if (!creds) {
-      res.status(400).json({ error: "Primero configurá tus credenciales de Google" });
-      return;
-    }
-
     const state = Buffer.from(
       JSON.stringify({ userId: req.user!.userId, tenantId: req.user!.tenantId }),
     ).toString("base64url");
 
-    const url = getAuthUrl(state, creds.clientId, creds.clientSecret);
+    const url = getAuthUrl(state);
     res.json({ url });
   } catch {
     res.status(500).json({ error: "Error al generar URL de autorización" });
@@ -122,13 +80,7 @@ router.get("/callback", async (req, res) => {
       return;
     }
 
-    const creds = getDecryptedCredentials(user);
-    if (!creds) {
-      res.redirect("/?view=configuracion&gcal=error&reason=no_credentials");
-      return;
-    }
-
-    const oauth2Client = createOAuth2Client(creds.clientId, creds.clientSecret);
+    const oauth2Client = createOAuth2Client();
     const { tokens } = await oauth2Client.getToken(code as string);
 
     if (!tokens.access_token || !tokens.refresh_token) {

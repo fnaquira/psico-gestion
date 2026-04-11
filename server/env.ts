@@ -14,6 +14,8 @@ export function validateServerEnv(): void {
   requireEnv("MONGODB_URI");
   requireEnv("JWT_SECRET");
   requireEnv("TOKEN_ENCRYPTION_KEY");
+  requireEnv("GOOGLE_CLIENT_ID");
+  requireEnv("GOOGLE_CLIENT_SECRET");
   requireEnv("GOOGLE_REDIRECT_URI");
 }
 

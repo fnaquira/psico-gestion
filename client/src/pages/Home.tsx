@@ -7,13 +7,12 @@ import PacientesView from '@/components/PacientesView';
 import PagosView from '@/components/PagosView';
 import ProfileView from '@/components/ProfileView';
 import ConfiguracionView from '@/components/ConfiguracionView';
-import ManualGCalView from '@/components/ManualGCalView';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { DashboardStats } from '@shared/types';
 
-type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos' | 'perfil' | 'configuracion' | 'manual-gcal';
+type ViewType = 'dashboard' | 'agenda' | 'pacientes' | 'pagos' | 'perfil' | 'configuracion';
 
 const VIEW_TITLES: Record<ViewType, { title: string; subtitle: string }> = {
   dashboard: { title: 'Tablero', subtitle: 'Resumen del día' },
@@ -22,7 +21,6 @@ const VIEW_TITLES: Record<ViewType, { title: string; subtitle: string }> = {
   pagos: { title: 'Pagos', subtitle: 'Transacciones y deudas' },
   perfil: { title: 'Mi Perfil', subtitle: 'Configuración de cuenta' },
   configuracion: { title: 'Configuración', subtitle: 'Integraciones y ajustes' },
-  'manual-gcal': { title: 'Manual GCal', subtitle: 'Cómo conectar Google Calendar' },
 };
 
 interface HomeProps {
@@ -104,10 +102,8 @@ export default function Home({ onLogout }: HomeProps) {
           <ConfiguracionView
             gcalStatus={gcalStatus}
             gcalErrorReason={gcalErrorReason}
-            onNavigateToManual={() => setCurrentView('manual-gcal')}
           />
         );
-      case 'manual-gcal': return <ManualGCalView />;
       default: return <DashboardView />;
     }
   };

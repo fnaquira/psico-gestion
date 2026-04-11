@@ -7,6 +7,7 @@ import express from "express";
 import { connectDB } from "./db.js";
 import { createApp } from "./app.js";
 import { validateServerEnv } from "./env.js";
+import { startInboundSyncCron } from "./jobs/inboundSyncCron.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +31,11 @@ async function startServer() {
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
+
+  // Start inbound GCal sync cron (every 15 min)
+  if (process.env.ENABLE_INBOUND_SYNC !== "false") {
+    startInboundSyncCron();
+  }
 
   const port = process.env.PORT || 3000;
 

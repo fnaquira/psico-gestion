@@ -122,6 +122,14 @@ export interface CitaDelDia {
   estado: "Confirmada" | "Pendiente";
 }
 
+export interface BloqueoDTO {
+  _id: string;
+  doctorId: string;
+  fecha: string;       // ISO date string
+  horaInicio: string;  // "HH:MM"
+  horaFin: string;     // "HH:MM"
+}
+
 // --- Auth responses ---
 
 export interface LoginResponse {

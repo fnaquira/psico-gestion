@@ -35,44 +35,20 @@ function decrypt(encryptedText: string): string {
 
 // ─── OAuth2 Client ───────────────────────────────────────────────────────────
 
-export function createOAuth2Client(clientId: string, clientSecret: string) {
-  return new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    process.env.GOOGLE_REDIRECT_URI,
-  );
+export function createOAuth2Client() {
+  const clientId = process.env.GOOGLE_CLIENT_ID ?? "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+  if (!clientId || !clientSecret) throw new Error("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no definidas");
+  return new google.auth.OAuth2(clientId, clientSecret, process.env.GOOGLE_REDIRECT_URI);
 }
 
-export function getAuthUrl(state: string, clientId: string, clientSecret: string): string {
-  const oauth2Client = createOAuth2Client(clientId, clientSecret);
+export function getAuthUrl(state: string): string {
+  const oauth2Client = createOAuth2Client();
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: ["https://www.googleapis.com/auth/calendar.events"],
     state,
-  });
-}
-
-export function getDecryptedCredentials(
-  user: IUser,
-): { clientId: string; clientSecret: string } | null {
-  if (!user.googleCalendar?.googleClientId || !user.googleCalendar?.googleClientSecret) {
-    return null;
-  }
-  return {
-    clientId: decrypt(user.googleCalendar.googleClientId),
-    clientSecret: decrypt(user.googleCalendar.googleClientSecret),
-  };
-}
-
-export async function saveCredentials(
-  userId: string,
-  clientId: string,
-  clientSecret: string,
-): Promise<void> {
-  await User.findByIdAndUpdate(userId, {
-    "googleCalendar.googleClientId": encrypt(clientId),
-    "googleCalendar.googleClientSecret": encrypt(clientSecret),
   });
 }
 
@@ -100,26 +76,19 @@ export async function disconnectCalendar(userId: string): Promise<void> {
       "googleCalendar.calendarId": "",
       "googleCalendar.syncEnabled": "",
       "googleCalendar.connectedAt": "",
+      "googleCalendar.lastInboundSyncAt": "",
     },
   });
 }
 
 // ─── Obtener cliente autenticado para un doctor ──────────────────────────────
 
-async function getAuthenticatedClient(user: IUser) {
-  if (
-    !user.googleCalendar?.accessToken ||
-    !user.googleCalendar?.refreshToken ||
-    !user.googleCalendar?.googleClientId ||
-    !user.googleCalendar?.googleClientSecret
-  ) {
+export async function getAuthenticatedClient(user: IUser) {
+  if (!user.googleCalendar?.accessToken || !user.googleCalendar?.refreshToken) {
     return null;
   }
 
-  const creds = getDecryptedCredentials(user);
-  if (!creds) return null;
-
-  const oauth2Client = createOAuth2Client(creds.clientId, creds.clientSecret);
+  const oauth2Client = createOAuth2Client();
 
   const accessToken = decrypt(user.googleCalendar.accessToken);
   const refreshToken = decrypt(user.googleCalendar.refreshToken);

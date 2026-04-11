@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, CreditCard, BarChart3, Settings, Settings2, BookOpen, LogOut, HeartPulse } from 'lucide-react';
+import { Calendar, Users, CreditCard, BarChart3, Settings, Settings2, LogOut, HeartPulse } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
@@ -16,7 +16,6 @@ export default function Sidebar({ currentView, onViewChange, onLogout }: Sidebar
     { id: 'pacientes', label: 'Pacientes', icon: Users },
     { id: 'pagos', label: 'Pagos', icon: CreditCard },
     { id: 'configuracion', label: 'Configuración', icon: Settings2 },
-    { id: 'manual-gcal', label: 'Manual GCal', icon: BookOpen },
   ];
 
   return (

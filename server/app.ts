@@ -15,6 +15,7 @@ import citasRoutes from "./routes/citas.js";
 import pagosRoutes from "./routes/pagos.js";
 import doctoresRoutes from "./routes/doctores.js";
 import googleCalendarRoutes from "./routes/googleCalendar.js";
+import bloqueosRoutes from "./routes/bloqueos.js";
 
 export function createApp() {
   const app = express();
@@ -81,6 +82,7 @@ export function createApp() {
   app.use("/api/pagos", authenticate, pagosRoutes);
   app.use("/api/doctores", authenticate, doctoresRoutes);
   app.use("/api/google-calendar", googleCalendarRoutes);
+  app.use("/api/bloqueos", bloqueosRoutes);
 
   return app;
 }
