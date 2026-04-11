@@ -27,3 +27,11 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   }
   next();
 }
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user || req.user.rol !== "superadmin") {
+    res.status(403).json({ error: "Se requiere rol superadmin" });
+    return;
+  }
+  next();
+}
