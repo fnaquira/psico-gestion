@@ -41,6 +41,33 @@ describe("Auth Routes", () => {
       });
       expect(res.status).toBe(400);
     });
+
+    it("stores and returns explicit timezone", async () => {
+      const res = await request.post("/api/auth/register").send({
+        nombreConsultorio: "Consultorio Lima",
+        nombre: "Dr. Lima",
+        email: "lima@test.com",
+        especialidad: "clinica",
+        password: "Password123",
+        timezone: "America/Lima",
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.timezone).toBe("America/Lima");
+    });
+
+    it("uses default timezone when omitted", async () => {
+      const res = await request.post("/api/auth/register").send({
+        nombreConsultorio: "Sin Timezone",
+        nombre: "Dr. Default",
+        email: "default-tz@test.com",
+        especialidad: "clinica",
+        password: "Password123",
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.timezone).toBe("America/Lima");
+    });
   });
 
   describe("POST /api/auth/login", () => {
@@ -114,6 +141,16 @@ describe("Auth Routes", () => {
         .get("/api/auth/me")
         .set("Authorization", "Bearer invalid-token-here");
       expect(res.status).toBe(401);
+    });
+
+    it("includes timezone in response", async () => {
+      const { token } = await createTestUser();
+      const res = await request
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.timezone).toBeDefined();
     });
   });
 });

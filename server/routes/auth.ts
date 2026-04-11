@@ -14,6 +14,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   especialidad: z.enum(["clinica", "infantil", "educativa", "neuropsicologia", "organizacional", "otra"]),
   password: z.string().min(8),
+  timezone: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -44,7 +45,7 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  const { nombreConsultorio, nombre, email, especialidad, password } = result.data;
+  const { nombreConsultorio, nombre, email, especialidad, password, timezone } = result.data;
 
   // Unique slug
   let slug = slugify(nombreConsultorio);
@@ -61,6 +62,7 @@ router.post("/register", async (req, res) => {
     passwordHash,
     rol: "admin",
     especialidad,
+    ...(timezone ? { timezone } : {}),
   });
 
   const token = signToken(String(user._id), String(tenant._id), "admin");
@@ -76,6 +78,7 @@ router.post("/register", async (req, res) => {
       activo: user.activo,
       tenantId: user.tenantId,
       createdAt: user.createdAt,
+      timezone: user.timezone,
     },
     tenant: {
       _id: tenant._id,
@@ -124,6 +127,7 @@ router.post("/login", async (req, res) => {
       activo: user.activo,
       tenantId: user.tenantId,
       createdAt: user.createdAt,
+      timezone: user.timezone,
     },
     tenant: tenant
       ? {
@@ -160,6 +164,7 @@ router.get("/me", authenticate, async (req, res) => {
       especialidad: user.especialidad,
       activo: user.activo,
       createdAt: user.createdAt,
+      timezone: user.timezone,
     },
     tenant: tenant
       ? { _id: tenant._id, name: tenant.name, slug: tenant.slug, plan: tenant.plan, settings: tenant.settings }
