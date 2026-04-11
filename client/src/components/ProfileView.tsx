@@ -1,88 +1,84 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Camera, Save, User, Mail, Award, Building2, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { Camera, Save, User, Mail, Award, Building2, Globe, Loader2 } from "lucide-react";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { TIMEZONES, resolveTimezone } from "@/lib/timezones";
 
-interface ProfileData {
-  nombre: string;
-  email: string;
-  especialidad: string;
-  colegiatura: string;
-  logoUrl: string;
-}
+export default function ProfileView() {
+  const { user, updateUser } = useAuth();
 
-const STORAGE_KEY = "psicogestion_profile";
-
-function loadProfile(): ProfileData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  return { nombre: "", email: "", especialidad: "", colegiatura: "", logoUrl: "" };
-}
-
-function saveProfile(data: ProfileData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-interface ProfileViewProps {
-  onProfileUpdate?: (profile: ProfileData) => void;
-}
-
-export default function ProfileView({ onProfileUpdate }: ProfileViewProps) {
-  const [form, setForm] = useState<ProfileData>(loadProfile);
+  const [form, setForm] = useState({
+    nombre: user?.nombre ?? "",
+    email: user?.email ?? "",
+    especialidad: user?.especialidad ?? "",
+    timezone: resolveTimezone(user?.timezone ?? "America/Lima"),
+    logoUrl: "",
+  });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const stored = loadProfile();
-    setForm(stored);
-  }, []);
+  const [error, setError] = useState("");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      const result = ev.target?.result as string;
-      setForm(f => ({ ...f, logoUrl: result }));
+      setForm(f => ({ ...f, logoUrl: ev.target?.result as string }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setSaving(true);
-    await new Promise(r => setTimeout(r, 400));
-    saveProfile(form);
-    onProfileUpdate?.(form);
-    setSaved(true);
-    setSaving(false);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      const { data } = await api.patch("/auth/me", {
+        nombre: form.nombre,
+        email: form.email,
+        especialidad: form.especialidad,
+        timezone: form.timezone,
+      });
+      updateUser({
+        nombre: data.nombre,
+        email: data.email,
+        especialidad: data.especialidad,
+        timezone: data.timezone,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error ?? "Error al guardar. Intentá de nuevo.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initials = form.nombre
-    ? form.nombre
-        .split(" ")
-        .map(n => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+    ? form.nombre.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
+
+  const ESPECIALIDADES = [
+    { value: "clinica", label: "Psicología Clínica" },
+    { value: "infantil", label: "Psicología Infantil" },
+    { value: "educativa", label: "Psicología Educativa" },
+    { value: "neuropsicologia", label: "Neuropsicología" },
+    { value: "organizacional", label: "Psicología Organizacional" },
+    { value: "otra", label: "Otra" },
+  ];
 
   return (
     <div className="p-8 max-w-2xl space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-foreground tracking-tight">Mi Perfil</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Información personal y datos de colegiatura
+          Información personal y configuración de cuenta
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Avatar / Logo */}
+        {/* Avatar */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Foto / Logo</h3>
           <div className="flex items-center gap-5">
@@ -166,38 +162,47 @@ export default function ProfileView({ onProfileUpdate }: ProfileViewProps) {
               <Building2 size={12} />
               Especialidad
             </label>
-            <input
-              type="text"
+            <select
               value={form.especialidad}
               onChange={e => setForm(f => ({ ...f, especialidad: e.target.value }))}
-              placeholder="Ej: Psicología Clínica"
               className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background transition-shadow"
-            />
+            >
+              {ESPECIALIDADES.map(e => (
+                <option key={e.value} value={e.value}>{e.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Colegiatura */}
+        {/* Zona Horaria */}
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">Colegiatura</h3>
+          <h3 className="text-sm font-semibold text-foreground">Zona Horaria</h3>
           <p className="text-xs text-muted-foreground -mt-2">
-            Número de colegiatura del Colegio de Psicólogos del Perú (CPsP)
+            Usada para sincronizar tus citas con Google Calendar correctamente.
           </p>
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              <Award size={12} />
-              N° de Colegiatura
+              <Globe size={12} />
+              Zona horaria
             </label>
-            <input
-              type="text"
-              value={form.colegiatura}
-              onChange={e => setForm(f => ({ ...f, colegiatura: e.target.value }))}
-              placeholder="Ej: CPsP 12345"
+            <select
+              value={form.timezone}
+              onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}
               className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background transition-shadow"
-            />
+            >
+              {TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Save */}
+        {error && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+            {error}
+          </p>
+        )}
+
         <div className="flex items-center gap-3">
           <button
             type="submit"
@@ -221,6 +226,3 @@ export default function ProfileView({ onProfileUpdate }: ProfileViewProps) {
     </div>
   );
 }
-
-export { loadProfile };
-export type { ProfileData };
