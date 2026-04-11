@@ -20,6 +20,7 @@ export async function createTestUser(
     email?: string;
     nombre?: string;
     tenantId?: string;
+    timezone?: string;
   } = {},
 ): Promise<TestContext> {
   const tenant =
@@ -40,6 +41,7 @@ export async function createTestUser(
     passwordHash,
     rol: overrides.rol ?? "admin",
     especialidad: "clinica",
+    ...(overrides.timezone ? { timezone: overrides.timezone } : {}),
   });
 
   const token = jwt.sign(

@@ -68,6 +68,19 @@ describe("Auth Routes", () => {
       expect(res.status).toBe(201);
       expect(res.body.user.timezone).toBe("America/Lima");
     });
+
+    it("returns 400 for invalid timezone on register", async () => {
+      const res = await request.post("/api/auth/register").send({
+        nombreConsultorio: "Bad Tz",
+        nombre: "Dr. Bad",
+        email: "bad-tz@test.com",
+        especialidad: "clinica",
+        password: "Password123",
+        timezone: "not/a/timezone",
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
   });
 
   describe("POST /api/auth/login", () => {
@@ -214,6 +227,15 @@ describe("Auth Routes", () => {
       // Should succeed because cross2@test.com is in a different tenant
       expect(res.status).toBe(200);
       expect(res.body.email).toBe("cross2@test.com");
+    });
+
+    it("returns 400 for invalid timezone on PATCH /me", async () => {
+      const { token } = await createTestUser();
+      const res = await request
+        .patch("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ timezone: "garbage" });
+      expect(res.status).toBe(400);
     });
   });
 });

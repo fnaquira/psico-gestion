@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Camera, Save, User, Mail, Building2, Globe, Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { TIMEZONES, resolveTimezone } from "@/lib/timezones";
+import { TIMEZONES } from "@/lib/timezones";
 
 const ESPECIALIDADES = [
   { value: "clinica", label: "Psicología Clínica" },
@@ -20,7 +20,7 @@ export default function ProfileView() {
     nombre: user?.nombre ?? "",
     email: user?.email ?? "",
     especialidad: user?.especialidad ?? "",
-    timezone: resolveTimezone(user?.timezone ?? "America/Lima"),
+    timezone: user?.timezone ?? "America/Lima",
     logoUrl: "",
   });
   const [saved, setSaved] = useState(false);
@@ -197,6 +197,9 @@ export default function ProfileView() {
               onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}
               className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background transition-shadow"
             >
+              {!TIMEZONES.find(tz => tz.value === form.timezone) && (
+                <option value={form.timezone}>{form.timezone} (actual)</option>
+              )}
               {TIMEZONES.map(tz => (
                 <option key={tz.value} value={tz.value}>{tz.label}</option>
               ))}

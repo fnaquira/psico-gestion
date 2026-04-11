@@ -245,4 +245,11 @@ describe("Citas Routes", () => {
       expect(res.body).toHaveLength(0);
     });
   });
+
+  describe("Doctor timezone", () => {
+    it("doctor has default timezone from model", async () => {
+      const { user } = await createTestUser();
+      expect((user as any).timezone).toBe("America/Lima");
+    });
+  });
 });

@@ -14,7 +14,13 @@ const registerSchema = z.object({
   email: z.string().email(),
   especialidad: z.enum(["clinica", "infantil", "educativa", "neuropsicologia", "organizacional", "otra"]),
   password: z.string().min(8),
-  timezone: z.string().optional(),
+  timezone: z.string().refine(
+    val => {
+      try { Intl.DateTimeFormat(undefined, { timeZone: val }); return true; }
+      catch { return false; }
+    },
+    { message: "Zona horaria inválida" }
+  ).optional(),
 });
 
 const loginSchema = z.object({
@@ -176,7 +182,13 @@ const updateMeSchema = z.object({
   nombre: z.string().min(2).optional(),
   email: z.string().email().optional(),
   especialidad: z.enum(["clinica", "infantil", "educativa", "neuropsicologia", "organizacional", "otra"]).optional(),
-  timezone: z.string().optional(),
+  timezone: z.string().refine(
+    val => {
+      try { Intl.DateTimeFormat(undefined, { timeZone: val }); return true; }
+      catch { return false; }
+    },
+    { message: "Zona horaria inválida" }
+  ).optional(),
 });
 
 // PATCH /api/auth/me — update own profile
