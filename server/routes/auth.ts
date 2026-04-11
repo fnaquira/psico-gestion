@@ -62,7 +62,7 @@ router.post("/register", async (req, res) => {
     passwordHash,
     rol: "admin",
     especialidad,
-    ...(timezone ? { timezone } : {}),
+    timezone,
   });
 
   const token = signToken(String(user._id), String(tenant._id), "admin");

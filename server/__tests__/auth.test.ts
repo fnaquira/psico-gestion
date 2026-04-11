@@ -150,7 +150,7 @@ describe("Auth Routes", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.user.timezone).toBeDefined();
+      expect(res.body.user.timezone).toBe("America/Lima");
     });
   });
 });
