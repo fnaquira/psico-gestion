@@ -99,11 +99,11 @@ router.post("/", async (req: Request, res: Response) => {
   const [paciente, tenant, doctor] = await Promise.all([
     Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
     Tenant.findById(tenantId).select("settings").lean(),
-    User.findById(cita.doctorId).select("timezone").lean(),
+    User.findById(cita.doctorId).select("timezone").lean<{ timezone: string }>(),
   ]);
   if (paciente) {
     const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
-    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
+    const timezone = doctor?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
   }
 });
@@ -134,11 +134,11 @@ router.put("/:id", async (req: Request, res: Response) => {
   const [paciente, tenant, doctor] = await Promise.all([
     Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
     Tenant.findById(tenantId).select("settings").lean(),
-    User.findById(cita.doctorId).select("timezone").lean(),
+    User.findById(cita.doctorId).select("timezone").lean<{ timezone: string }>(),
   ]);
   if (paciente) {
     const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
-    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
+    const timezone = doctor?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
   }
 });
@@ -161,9 +161,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
   if (cita.googleCalendarEventId) {
     const [tenant, doctor] = await Promise.all([
       Tenant.findById(tenantId).select("settings").lean(),
-      User.findById(cita.doctorId).select("timezone").lean(),
+      User.findById(cita.doctorId).select("timezone").lean<{ timezone: string }>(),
     ]);
-    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
+    const timezone = doctor?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, "", timezone).catch(console.error);
   }
 });
