@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { Camera, Save, User, Mail, Award, Building2, Globe, Loader2 } from "lucide-react";
+import { Camera, Save, User, Mail, Building2, Globe, Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { TIMEZONES, resolveTimezone } from "@/lib/timezones";
+
+const ESPECIALIDADES = [
+  { value: "clinica", label: "Psicología Clínica" },
+  { value: "infantil", label: "Psicología Infantil" },
+  { value: "educativa", label: "Psicología Educativa" },
+  { value: "neuropsicologia", label: "Neuropsicología" },
+  { value: "organizacional", label: "Psicología Organizacional" },
+  { value: "otra", label: "Otra" },
+];
 
 export default function ProfileView() {
   const { user, updateUser } = useAuth();
@@ -46,6 +55,13 @@ export default function ProfileView() {
         especialidad: data.especialidad,
         timezone: data.timezone,
       });
+      setForm(f => ({
+        ...f,
+        nombre: data.nombre,
+        email: data.email,
+        especialidad: data.especialidad,
+        timezone: data.timezone,
+      }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -58,15 +74,6 @@ export default function ProfileView() {
   const initials = form.nombre
     ? form.nombre.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
-
-  const ESPECIALIDADES = [
-    { value: "clinica", label: "Psicología Clínica" },
-    { value: "infantil", label: "Psicología Infantil" },
-    { value: "educativa", label: "Psicología Educativa" },
-    { value: "neuropsicologia", label: "Neuropsicología" },
-    { value: "organizacional", label: "Psicología Organizacional" },
-    { value: "otra", label: "Otra" },
-  ];
 
   return (
     <div className="p-8 max-w-2xl space-y-6">
