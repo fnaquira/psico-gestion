@@ -188,12 +188,16 @@ router.patch("/me", authenticate, async (req, res) => {
     return;
   }
 
-  const { email, ...rest } = result.data;
-  const update: Record<string, unknown> = { ...rest };
+  // Explicit field allowlist (Fix 2)
+  const update: Record<string, unknown> = {};
+  if (result.data.nombre !== undefined) update.nombre = result.data.nombre;
+  if (result.data.especialidad !== undefined) update.especialidad = result.data.especialidad;
+  if (result.data.timezone !== undefined) update.timezone = result.data.timezone;
 
-  if (email) {
+  // Handle email separately with conflict check
+  if (result.data.email) {
     const conflict = await User.findOne({
-      email: email.toLowerCase(),
+      email: result.data.email.toLowerCase(),
       tenantId,
       _id: { $ne: userId },
     });
@@ -201,16 +205,26 @@ router.patch("/me", authenticate, async (req, res) => {
       res.status(409).json({ error: "Ese email ya está en uso por otro usuario" });
       return;
     }
-    update.email = email.toLowerCase();
+    update.email = result.data.email.toLowerCase();
   }
 
-  const user = await User.findByIdAndUpdate(userId, update, { new: true }).select("-passwordHash").lean();
+  const user = await User.findByIdAndUpdate(userId, update, { new: true }).lean();
   if (!user) {
     res.status(404).json({ error: "Usuario no encontrado" });
     return;
   }
 
-  res.json(user);
+  // Shape response explicitly (Fix 1) - mirrors GET /me pattern
+  res.json({
+    _id: user._id,
+    nombre: user.nombre,
+    email: user.email,
+    rol: user.rol,
+    especialidad: user.especialidad,
+    activo: user.activo,
+    timezone: user.timezone,
+    createdAt: user.createdAt,
+  });
 });
 
 export default router;

@@ -200,5 +200,20 @@ describe("Auth Routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.email).toBe("same@test.com");
     });
+
+    it("allows email that exists in a different tenant", async () => {
+      const ctx1 = await createTestUser({ email: "cross1@test.com" });
+      // Create user in a DIFFERENT tenant (no tenantId override → new tenant)
+      await createTestUser({ email: "cross2@test.com" });
+
+      const res = await request
+        .patch("/api/auth/me")
+        .set("Authorization", `Bearer ${ctx1.token}`)
+        .send({ email: "cross2@test.com" });
+
+      // Should succeed because cross2@test.com is in a different tenant
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe("cross2@test.com");
+    });
   });
 });
