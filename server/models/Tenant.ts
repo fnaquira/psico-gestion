@@ -19,7 +19,7 @@ const TenantSchema = new Schema<ITenant>(
     plan: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
     settings: {
       currency: { type: String, default: "ARS" },
-      timezone: { type: String, default: "America/Argentina/Buenos_Aires" },
+      timezone: { type: String, default: "America/Lima" },
       sessionPrice: { type: Number, default: 0 },
     },
   },

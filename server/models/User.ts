@@ -17,6 +17,7 @@ export interface IUser extends Document {
   rol: "admin" | "doctor";
   especialidad: "clinica" | "infantil" | "educativa" | "neuropsicologia" | "organizacional" | "otra";
   activo: boolean;
+  timezone: string;
   createdAt: Date;
   googleCalendar?: IGoogleCalendar;
 }
@@ -34,6 +35,7 @@ const UserSchema = new Schema<IUser>(
       default: "clinica",
     },
     activo: { type: Boolean, default: true },
+    timezone: { type: String, default: "America/Lima" },
     googleCalendar: {
       accessToken: { type: String },
       refreshToken: { type: String },

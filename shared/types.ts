@@ -28,6 +28,7 @@ export interface UserDTO {
   rol: "admin" | "doctor";
   especialidad: string;
   activo: boolean;
+  timezone: string;
   createdAt: string;
 }
 

@@ -43,7 +43,7 @@ async function seed() {
     name: "Consultorio Demo",
     slug: "consultorio-demo",
     plan: "pro",
-    settings: { currency: "ARS", timezone: "America/Argentina/Buenos_Aires", sessionPrice: 15000 },
+    settings: { currency: "ARS", timezone: "America/Lima", sessionPrice: 15000 },
   });
 
   // ── Usuario admin ────────────────────────────────────────────────────────────
