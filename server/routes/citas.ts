@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Cita } from "../models/Cita.js";
 import { Tenant } from "../models/Tenant.js";
 import { Paciente } from "../models/Paciente.js";
+import { User } from "../models/User.js";
 import { syncCitaToCalendar } from "../services/googleCalendarService.js";
 
 const router = Router();
@@ -95,13 +96,14 @@ router.post("/", async (req: Request, res: Response) => {
   res.status(201).json(mapCitaDTO(populated.toObject()));
 
   // Sync con Google Calendar (fire-and-forget)
-  const [paciente, tenant] = await Promise.all([
+  const [paciente, tenant, doctor] = await Promise.all([
     Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
     Tenant.findById(tenantId).select("settings").lean(),
+    User.findById(cita.doctorId).select("timezone").lean(),
   ]);
   if (paciente) {
     const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
-    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
   }
 });
@@ -129,13 +131,14 @@ router.put("/:id", async (req: Request, res: Response) => {
   res.json(mapCitaDTO(cita.toObject()));
 
   // Sync con Google Calendar (fire-and-forget)
-  const [paciente, tenant] = await Promise.all([
+  const [paciente, tenant, doctor] = await Promise.all([
     Paciente.findById(cita.pacienteId).select("nombre apellido").lean(),
     Tenant.findById(tenantId).select("settings").lean(),
+    User.findById(cita.doctorId).select("timezone").lean(),
   ]);
   if (paciente) {
     const pacienteNombre = `${paciente.nombre} ${paciente.apellido}`;
-    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, pacienteNombre, timezone).catch(console.error);
   }
 });
@@ -156,8 +159,11 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
   // Sync cancelación con Google Calendar (fire-and-forget)
   if (cita.googleCalendarEventId) {
-    const tenant = await Tenant.findById(tenantId).select("settings").lean();
-    const timezone = tenant?.settings?.timezone ?? "America/Argentina/Buenos_Aires";
+    const [tenant, doctor] = await Promise.all([
+      Tenant.findById(tenantId).select("settings").lean(),
+      User.findById(cita.doctorId).select("timezone").lean(),
+    ]);
+    const timezone = (doctor as any)?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, "", timezone).catch(console.error);
   }
 });
