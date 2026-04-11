@@ -136,7 +136,7 @@ export interface BloqueoDTO {
 export interface LoginResponse {
   token: string;
   user: UserDTO;
-  tenant: TenantDTO;
+  tenant: TenantDTO | null;
 }
 
 export interface RegisterResponse {

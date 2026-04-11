@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { Tenant } from "../models/Tenant.js";
 import { User } from "../models/User.js";
+import { SuperAdmin } from "../models/SuperAdmin.js";
 import { getJwtSecret } from "../env.js";
 
 const router = Router();
@@ -105,45 +106,73 @@ router.post("/login", async (req, res) => {
   }
 
   const { email, password } = result.data;
+  const normalizedEmail = email.toLowerCase();
 
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user || !user.activo) {
+  // ── Regular user check ────────────────────────────────────────────────────
+  const user = await User.findOne({ email: normalizedEmail });
+
+  if (user) {
+    // User record exists → follow normal auth, never fall through to superadmin
+    if (!user.activo) {
+      res.status(401).json({ error: "Credenciales inválidas" });
+      return;
+    }
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Credenciales inválidas" });
+      return;
+    }
+    const tenant = await Tenant.findById(user.tenantId);
+    const token = signToken(String(user._id), String(user.tenantId!), user.rol);
+    res.json({
+      token,
+      user: {
+        _id: user._id,
+        nombre: user.nombre,
+        email: user.email,
+        rol: user.rol,
+        especialidad: user.especialidad,
+        activo: user.activo,
+        tenantId: user.tenantId,
+        createdAt: user.createdAt,
+        timezone: user.timezone,
+      },
+      tenant: tenant
+        ? { _id: tenant._id, name: tenant.name, slug: tenant.slug, plan: tenant.plan, settings: tenant.settings }
+        : null,
+    });
+    return;
+  }
+
+  // ── SuperAdmin check (only if no User found with this email) ─────────────
+  const superAdmin = await SuperAdmin.findOne({ email: normalizedEmail });
+  if (!superAdmin) {
     res.status(401).json({ error: "Credenciales inválidas" });
     return;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
+  const validSuperAdmin = await bcrypt.compare(password, superAdmin.passwordHash);
+  if (!validSuperAdmin) {
     res.status(401).json({ error: "Credenciales inválidas" });
     return;
   }
 
-  const tenant = await Tenant.findById(user.tenantId);
-
-  const token = signToken(String(user._id), String(user.tenantId!), user.rol);
+  const token = signToken(String(superAdmin._id), null, "superadmin");
 
   res.json({
     token,
     user: {
-      _id: user._id,
-      nombre: user.nombre,
-      email: user.email,
-      rol: user.rol,
-      especialidad: user.especialidad,
-      activo: user.activo,
-      tenantId: user.tenantId,
-      createdAt: user.createdAt,
-      timezone: user.timezone,
+      _id: superAdmin._id,
+      nombre: superAdmin.nombre,
+      email: superAdmin.email,
+      rol: "superadmin",
+      especialidad: "",
+      activo: true,
+      tenantId: null,
+      createdAt: superAdmin.createdAt,
+      timezone: "UTC",
     },
-    tenant: tenant
-      ? {
-          _id: tenant._id,
-          name: tenant.name,
-          slug: tenant.slug,
-          plan: tenant.plan,
-          settings: tenant.settings,
-        }
-      : null,
+    tenant: null,
   });
 });
 
