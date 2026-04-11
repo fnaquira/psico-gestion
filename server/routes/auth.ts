@@ -228,6 +228,7 @@ router.get("/me", authenticate, async (req, res) => {
       rol: user.rol,
       especialidad: user.especialidad,
       activo: user.activo,
+      tenantId: user.tenantId,
       createdAt: user.createdAt,
       timezone: user.timezone,
     },
@@ -252,6 +253,11 @@ const updateMeSchema = z.object({
 
 // PATCH /api/auth/me — update own profile
 router.patch("/me", authenticate, async (req, res) => {
+  if (req.user!.rol === "superadmin") {
+    res.status(403).json({ error: "Superadmin no puede editar su perfil por esta vía" });
+    return;
+  }
+
   const { userId, tenantId } = req.user!;
   const result = updateMeSchema.safeParse(req.body);
   if (!result.success) {

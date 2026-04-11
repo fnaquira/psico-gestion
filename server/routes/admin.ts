@@ -19,6 +19,10 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function safeEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
+  return allowed.includes(value as T) ? (value as T) : null;
+}
+
 function paginationParams(query: Record<string, unknown>) {
   const raw = parseInt((query.page as string) ?? "1", 10);
   const page = Number.isFinite(raw) && raw > 0 ? raw : 1;
@@ -36,7 +40,8 @@ router.get(
       filter.name = { $regex: escapeRegex(req.query.name as string), $options: "i" };
     if (req.query.slug)
       filter.slug = { $regex: escapeRegex(req.query.slug as string), $options: "i" };
-    if (req.query.plan) filter.plan = req.query.plan;
+    const plan = safeEnum(req.query.plan, ["free", "pro", "enterprise"] as const);
+    if (plan) filter.plan = plan;
 
     const [items, total] = await Promise.all([
       Tenant.find(filter).skip(skip).limit(limit).lean(),
@@ -57,7 +62,8 @@ router.get(
       filter.nombre = { $regex: escapeRegex(req.query.nombre as string), $options: "i" };
     if (req.query.email)
       filter.email = { $regex: escapeRegex(req.query.email as string), $options: "i" };
-    if (req.query.rol) filter.rol = req.query.rol;
+    const rol = safeEnum(req.query.rol, ["admin", "doctor"] as const);
+    if (rol) filter.rol = rol;
     if (req.query.tenantId) filter.tenantId = req.query.tenantId;
     if (req.query.activo !== undefined) filter.activo = req.query.activo === "true";
 
@@ -112,7 +118,8 @@ router.get(
       filter.nombre = { $regex: escapeRegex(req.query.nombre as string), $options: "i" };
     if (req.query.apellido)
       filter.apellido = { $regex: escapeRegex(req.query.apellido as string), $options: "i" };
-    if (req.query.estado) filter.estado = req.query.estado;
+    const estado = safeEnum(req.query.estado, ["activo", "inactivo", "en_deuda"] as const);
+    if (estado) filter.estado = estado;
     if (req.query.tenantId) filter.tenantId = req.query.tenantId;
 
     const [items, total] = await Promise.all([
@@ -158,7 +165,8 @@ router.get(
   wrap(async (req, res) => {
     const { skip, limit } = paginationParams(req.query);
     const filter: Record<string, unknown> = {};
-    if (req.query.estado) filter.estado = req.query.estado;
+    const estadoCita = safeEnum(req.query.estado, ["programada", "realizada", "cancelada", "no_asistio"] as const);
+    if (estadoCita) filter.estado = estadoCita;
     if (req.query.doctorId) filter.doctorId = req.query.doctorId;
     if (req.query.tenantId) filter.tenantId = req.query.tenantId;
     if (req.query.fecha) {
@@ -218,8 +226,10 @@ router.get(
   wrap(async (req, res) => {
     const { skip, limit } = paginationParams(req.query);
     const filter: Record<string, unknown> = {};
-    if (req.query.metodo) filter.metodo = req.query.metodo;
-    if (req.query.tipoPago) filter.tipoPago = req.query.tipoPago;
+    const metodo = safeEnum(req.query.metodo, ["efectivo", "transferencia", "tarjeta"] as const);
+    if (metodo) filter.metodo = metodo;
+    const tipoPago = safeEnum(req.query.tipoPago, ["adelantado", "al_llegar", "deuda"] as const);
+    if (tipoPago) filter.tipoPago = tipoPago;
     if (req.query.tenantId) filter.tenantId = req.query.tenantId;
     if (req.query.fechaDesde || req.query.fechaHasta) {
       const fechaFilter: Record<string, Date> = {};

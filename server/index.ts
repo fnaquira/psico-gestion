@@ -18,6 +18,16 @@ async function ensureSuperAdmin(): Promise<void> {
   const email = (process.env.SUPERADMIN_EMAIL ?? "admin@psicogestion.com").toLowerCase();
   const password = process.env.SUPERADMIN_PASSWORD ?? "Admin1234!";
 
+  // Warn loudly if using default credentials in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!process.env.SUPERADMIN_EMAIL || !process.env.SUPERADMIN_PASSWORD)
+  ) {
+    console.warn(
+      "⚠️  ADVERTENCIA: Superadmin usando credenciales por defecto. Configura SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD en producción.",
+    );
+  }
+
   const existing = await SuperAdmin.findOne({ email });
   if (existing) return; // already seeded — never overwrite password
 
