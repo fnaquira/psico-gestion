@@ -16,6 +16,8 @@ import pagosRoutes from "./routes/pagos.js";
 import doctoresRoutes from "./routes/doctores.js";
 import googleCalendarRoutes from "./routes/googleCalendar.js";
 import bloqueosRoutes from "./routes/bloqueos.js";
+import adminRoutes from "./routes/admin.js";
+import { requireSuperAdmin } from "./middleware/auth.js";
 
 export function createApp() {
   const app = express();
@@ -83,6 +85,7 @@ export function createApp() {
   app.use("/api/doctores", authenticate, doctoresRoutes);
   app.use("/api/google-calendar", googleCalendarRoutes);
   app.use("/api/bloqueos", bloqueosRoutes);
+  app.use("/api/admin", authenticate, requireSuperAdmin, adminRoutes);
 
   return app;
 }
