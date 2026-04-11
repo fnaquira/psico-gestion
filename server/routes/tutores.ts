@@ -22,14 +22,14 @@ router.post("/", async (req: Request, res: Response) => {
     res.status(400).json({ errors: result.error.issues });
     return;
   }
-  const tutor = await Tutor.create({ tenantId, ...result.data });
+  const tutor = await Tutor.create({ tenantId: tenantId!, ...result.data });
   res.status(201).json(tutor);
 });
 
 // GET /api/tutores/:id
 router.get("/:id", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const tutor = await Tutor.findOne({ _id: req.params.id, tenantId }).lean();
+  const tutor = await Tutor.findOne({ _id: req.params.id, tenantId: tenantId! }).lean();
   if (!tutor) {
     res.status(404).json({ error: "Tutor no encontrado" });
     return;
@@ -45,7 +45,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     res.status(400).json({ errors: result.error.issues });
     return;
   }
-  const tutor = await Tutor.findOneAndUpdate({ _id: req.params.id, tenantId }, result.data, {
+  const tutor = await Tutor.findOneAndUpdate({ _id: req.params.id, tenantId: tenantId! }, result.data, {
     new: true,
   });
   if (!tutor) {

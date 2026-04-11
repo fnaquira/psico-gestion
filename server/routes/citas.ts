@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
   const { fecha, desde, hasta, doctorId } = req.query as Record<string, string>;
 
-  const filter: Record<string, unknown> = { tenantId };
+  const filter: Record<string, unknown> = { tenantId: tenantId! };
 
   if (desde && hasta) {
     filter.fecha = { $gte: new Date(desde), $lt: new Date(hasta) };
@@ -65,7 +65,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/citas/:id
 router.get("/:id", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const cita = await Cita.findOne({ _id: req.params.id, tenantId })
+  const cita = await Cita.findOne({ _id: req.params.id, tenantId: tenantId! })
     .populate("pacienteId", "nombre apellido")
     .populate("doctorId", "nombre")
     .lean();
@@ -85,7 +85,7 @@ router.post("/", async (req: Request, res: Response) => {
     return;
   }
   const cita = await Cita.create({
-    tenantId,
+    tenantId: tenantId!,
     ...result.data,
     fecha: new Date(result.data.fecha),
   });
@@ -119,7 +119,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   const update: Record<string, unknown> = { ...result.data };
   if (update.fecha) update.fecha = new Date(update.fecha as string);
 
-  const cita = await Cita.findOneAndUpdate({ _id: req.params.id, tenantId }, update, {
+  const cita = await Cita.findOneAndUpdate({ _id: req.params.id, tenantId: tenantId! }, update, {
     new: true,
   })
     .populate("pacienteId", "nombre apellido")
@@ -147,7 +147,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 router.delete("/:id", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
   const cita = await Cita.findOneAndUpdate(
-    { _id: req.params.id, tenantId },
+    { _id: req.params.id, tenantId: tenantId! },
     { estado: "cancelada" },
     { new: true },
   );

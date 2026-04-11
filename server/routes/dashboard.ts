@@ -12,7 +12,7 @@ const router = Router();
 // GET /api/dashboard/stats
 router.get("/stats", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const tenantOid = new Types.ObjectId(tenantId);
+  const tenantOid = new Types.ObjectId(tenantId!);
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -32,14 +32,14 @@ router.get("/stats", async (req: Request, res: Response) => {
     citasDiaPopuladas,
     alertasDeuda,
   ] = await Promise.all([
-    Cita.find({ tenantId, fecha: { $gte: todayStart, $lt: todayEnd } })
+    Cita.find({ tenantId: tenantId!, fecha: { $gte: todayStart, $lt: todayEnd } })
       .populate("pacienteId", "nombre apellido")
       .populate("doctorId", "nombre")
       .lean(),
 
-    Paciente.countDocuments({ tenantId, estado: "activo" }),
+    Paciente.countDocuments({ tenantId: tenantId!, estado: "activo" }),
 
-    Paciente.countDocuments({ tenantId, fechaRegistro: { $gte: monthStart } }),
+    Paciente.countDocuments({ tenantId: tenantId!, fechaRegistro: { $gte: monthStart } }),
 
     Pago.aggregate([
       { $match: { tenantId: tenantOid, fechaPago: { $gte: monthStart } } },
@@ -56,7 +56,7 @@ router.get("/stats", async (req: Request, res: Response) => {
       { $group: { _id: null, total: { $sum: "$monto" } } },
     ]),
 
-    Paciente.countDocuments({ tenantId, estado: "en_deuda" }),
+    Paciente.countDocuments({ tenantId: tenantId!, estado: "en_deuda" }),
 
     Paciente.aggregate([
       { $match: { tenantId: tenantOid, estado: "en_deuda" } },
@@ -101,13 +101,13 @@ router.get("/stats", async (req: Request, res: Response) => {
       { $sort: { _id: 1 } },
     ]),
 
-    Cita.find({ tenantId, fecha: { $gte: todayStart, $lt: todayEnd } })
+    Cita.find({ tenantId: tenantId!, fecha: { $gte: todayStart, $lt: todayEnd } })
       .populate("pacienteId", "nombre apellido")
       .populate("doctorId", "nombre")
       .sort("horaInicio")
       .lean(),
 
-    Paciente.find({ tenantId, estado: "en_deuda" }).limit(5).lean(),
+    Paciente.find({ tenantId: tenantId!, estado: "en_deuda" }).limit(5).lean(),
   ]);
 
   const ingresosMes = ingresosMesArr[0]?.total ?? 0;

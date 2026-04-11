@@ -40,7 +40,7 @@ router.get("/", async (req: Request, res: Response) => {
   const limitNum = Math.min(100, parseInt(limit));
   const skip = (pageNum - 1) * limitNum;
 
-  const filter: Record<string, unknown> = { tenantId, estado: { $ne: "inactivo" } };
+  const filter: Record<string, unknown> = { tenantId: tenantId!, estado: { $ne: "inactivo" } };
   if (search) {
     filter.$or = [
       { nombre: { $regex: search, $options: "i" } },
@@ -71,7 +71,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/pacientes/:id
 router.get("/:id", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const paciente = await Paciente.findOne({ _id: req.params.id, tenantId }).populate("tutorId").lean();
+  const paciente = await Paciente.findOne({ _id: req.params.id, tenantId: tenantId! }).populate("tutorId").lean();
   if (!paciente) {
     res.status(404).json({ error: "Paciente no encontrado" });
     return;
@@ -92,12 +92,12 @@ router.post("/", async (req: Request, res: Response) => {
 
   let tutorId: string | null = null;
   if (pacienteData.esMenor && tutorData) {
-    const tutor = await Tutor.create({ tenantId, ...tutorData });
+    const tutor = await Tutor.create({ tenantId: tenantId!, ...tutorData });
     tutorId = String(tutor._id);
   }
 
   const paciente = await Paciente.create({
-    tenantId,
+    tenantId: tenantId!,
     ...pacienteData,
     fechaNacimiento: new Date(pacienteData.fechaNacimiento),
     tutorId,
@@ -123,7 +123,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 
   const paciente = await Paciente.findOneAndUpdate(
-    { _id: req.params.id, tenantId },
+    { _id: req.params.id, tenantId: tenantId! },
     updateData,
     { new: true },
   ).populate("tutorId");
@@ -145,7 +145,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 router.delete("/:id", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
   const paciente = await Paciente.findOneAndUpdate(
-    { _id: req.params.id, tenantId },
+    { _id: req.params.id, tenantId: tenantId! },
     { estado: "inactivo" },
     { new: true },
   );

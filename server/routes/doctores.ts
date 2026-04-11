@@ -18,7 +18,7 @@ const doctorSchema = z.object({
 // GET /api/doctores
 router.get("/", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
-  const doctores = await User.find({ tenantId })
+  const doctores = await User.find({ tenantId: tenantId! })
     .select("-passwordHash")
     .sort({ nombre: 1 })
     .lean();
@@ -37,14 +37,14 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
   const { password, ...data } = result.data;
   const passwordHash = await bcrypt.hash(password ?? "Cambiar123!", 12);
 
-  const existing = await User.findOne({ email: data.email.toLowerCase(), tenantId });
+  const existing = await User.findOne({ email: data.email.toLowerCase(), tenantId: tenantId! });
   if (existing) {
     res.status(409).json({ error: "Ya existe un usuario con ese email en este consultorio" });
     return;
   }
 
   const doctor = await User.create({
-    tenantId,
+    tenantId: tenantId!,
     passwordHash,
     rol: "doctor",
     ...data,
@@ -73,7 +73,7 @@ router.put("/:id", requireAdmin, async (req: Request, res: Response) => {
   const update: Record<string, unknown> = { ...data };
   if (password) update.passwordHash = await bcrypt.hash(password, 12);
 
-  const doctor = await User.findOneAndUpdate({ _id: req.params.id, tenantId }, update, {
+  const doctor = await User.findOneAndUpdate({ _id: req.params.id, tenantId: tenantId! }, update, {
     new: true,
   }).select("-passwordHash");
 

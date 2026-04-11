@@ -120,7 +120,7 @@ router.post("/login", async (req, res) => {
 
   const tenant = await Tenant.findById(user.tenantId);
 
-  const token = signToken(String(user._id), String(user.tenantId), user.rol);
+  const token = signToken(String(user._id), String(user.tenantId!), user.rol);
 
   res.json({
     token,

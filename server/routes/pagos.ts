@@ -24,7 +24,7 @@ router.get("/", async (req: Request, res: Response) => {
   const limitNum = Math.min(100, parseInt(limit));
   const skip = (pageNum - 1) * limitNum;
 
-  const pagos = await Pago.find({ tenantId })
+  const pagos = await Pago.find({ tenantId: tenantId! })
     .populate("pacienteId", "nombre apellido")
     .populate("citaId", "horaInicio tipoSesion")
     .sort({ fechaPago: -1 })
@@ -46,14 +46,14 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/deudas", async (req: Request, res: Response) => {
   const { tenantId } = req.user!;
 
-  const pacientesDeuda = await Paciente.find({ tenantId, estado: "en_deuda" })
+  const pacientesDeuda = await Paciente.find({ tenantId: tenantId!, estado: "en_deuda" })
     .select("nombre apellido telefono fechaRegistro")
     .lean();
 
   const result = await Promise.all(
     pacientesDeuda.map(async p => {
       const pagosDeuda = await Pago.find({
-        tenantId,
+        tenantId: tenantId!,
         pacienteId: p._id,
         tipoPago: "deuda",
       }).lean();
@@ -85,7 +85,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   const pago = await Pago.create({
-    tenantId,
+    tenantId: tenantId!,
     creadoPor: userId,
     ...result.data,
   });
@@ -93,14 +93,14 @@ router.post("/", async (req: Request, res: Response) => {
   // If paying off debt, check if patient is fully paid and update estado
   if (result.data.tipoPago === "deuda" || result.data.tipoPago === "al_llegar") {
     const pagosDeuda = await Pago.find({
-      tenantId,
+      tenantId: tenantId!,
       pacienteId: result.data.pacienteId,
       tipoPago: "deuda",
     }).lean();
 
     if (pagosDeuda.length === 0) {
       await Paciente.findOneAndUpdate(
-        { _id: result.data.pacienteId, tenantId, estado: "en_deuda" },
+        { _id: result.data.pacienteId, tenantId: tenantId!, estado: "en_deuda" },
         { estado: "activo" },
       );
     }
