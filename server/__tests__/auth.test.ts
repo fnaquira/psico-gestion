@@ -153,4 +153,52 @@ describe("Auth Routes", () => {
       expect(res.body.user.timezone).toBe("America/Lima");
     });
   });
+
+  describe("PATCH /api/auth/me", () => {
+    it("updates nombre and timezone", async () => {
+      const { token } = await createTestUser();
+
+      const res = await request
+        .patch("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ nombre: "Dr. Actualizado", timezone: "America/Bogota" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.nombre).toBe("Dr. Actualizado");
+      expect(res.body.timezone).toBe("America/Bogota");
+      expect(res.body.passwordHash).toBeUndefined();
+    });
+
+    it("returns 401 without token", async () => {
+      const res = await request
+        .patch("/api/auth/me")
+        .send({ nombre: "Hacker" });
+
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 409 if email is already taken by another user in same tenant", async () => {
+      const ctx = await createTestUser({ email: "original@test.com" });
+      await createTestUser({ email: "taken@test.com", tenantId: String(ctx.tenant._id) });
+
+      const res = await request
+        .patch("/api/auth/me")
+        .set("Authorization", `Bearer ${ctx.token}`)
+        .send({ email: "taken@test.com" });
+
+      expect(res.status).toBe(409);
+    });
+
+    it("allows updating to same email (no-op)", async () => {
+      const { token } = await createTestUser({ email: "same@test.com" });
+
+      const res = await request
+        .patch("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ email: "same@test.com" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe("same@test.com");
+    });
+  });
 });

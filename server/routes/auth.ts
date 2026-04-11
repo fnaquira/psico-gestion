@@ -172,4 +172,45 @@ router.get("/me", authenticate, async (req, res) => {
   });
 });
 
+const updateMeSchema = z.object({
+  nombre: z.string().min(2).optional(),
+  email: z.string().email().optional(),
+  especialidad: z.enum(["clinica", "infantil", "educativa", "neuropsicologia", "organizacional", "otra"]).optional(),
+  timezone: z.string().optional(),
+});
+
+// PATCH /api/auth/me — update own profile
+router.patch("/me", authenticate, async (req, res) => {
+  const { userId, tenantId } = req.user!;
+  const result = updateMeSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ errors: result.error.issues });
+    return;
+  }
+
+  const { email, ...rest } = result.data;
+  const update: Record<string, unknown> = { ...rest };
+
+  if (email) {
+    const conflict = await User.findOne({
+      email: email.toLowerCase(),
+      tenantId,
+      _id: { $ne: userId },
+    });
+    if (conflict) {
+      res.status(409).json({ error: "Ese email ya está en uso por otro usuario" });
+      return;
+    }
+    update.email = email.toLowerCase();
+  }
+
+  const user = await User.findByIdAndUpdate(userId, update, { new: true }).select("-passwordHash").lean();
+  if (!user) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
+
+  res.json(user);
+});
+
 export default router;
