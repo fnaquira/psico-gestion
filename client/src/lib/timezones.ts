@@ -14,11 +14,11 @@ export const TIMEZONES: TimezoneOption[] = [
   { value: "America/Santiago", label: "Santiago (UTC-4/-3)", region: "América" },
   { value: "America/Caracas", label: "Caracas (UTC-4)", region: "América" },
   { value: "America/La_Paz", label: "La Paz (UTC-4)", region: "América" },
-  { value: "America/Asuncion", label: "Asunción (UTC-4/-3)", region: "América" },
+  { value: "America/Asuncion", label: "Asunción (UTC-3)", region: "América" },
   { value: "America/Montevideo", label: "Montevideo (UTC-3)", region: "América" },
   // América Central y México
-  { value: "America/Mexico_City", label: "Ciudad de México (UTC-6/-5)", region: "América" },
-  { value: "America/Monterrey", label: "Monterrey (UTC-6/-5)", region: "América" },
+  { value: "America/Mexico_City", label: "Ciudad de México (UTC-6)", region: "América" },
+  { value: "America/Monterrey", label: "Monterrey (UTC-6)", region: "América" },
   { value: "America/Guatemala", label: "Guatemala (UTC-6)", region: "América" },
   { value: "America/Costa_Rica", label: "San José (UTC-6)", region: "América" },
   // América del Norte
