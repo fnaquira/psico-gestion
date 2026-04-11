@@ -2,8 +2,8 @@
 
 export interface AuthPayload {
   userId: string;
-  tenantId: string;
-  rol: "admin" | "doctor";
+  tenantId: string | null;  // null for superadmin
+  rol: "admin" | "doctor" | "superadmin";
 }
 
 // --- DTOs returned by the API ---
@@ -22,10 +22,10 @@ export interface TenantDTO {
 
 export interface UserDTO {
   _id: string;
-  tenantId: string;
+  tenantId: string | null;   // null for superadmin
   nombre: string;
   email: string;
-  rol: "admin" | "doctor";
+  rol: "admin" | "doctor" | "superadmin";
   especialidad: string;
   activo: boolean;
   timezone: string;

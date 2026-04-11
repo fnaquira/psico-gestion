@@ -37,7 +37,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-function signToken(userId: string, tenantId: string, rol: "admin" | "doctor"): string {
+function signToken(userId: string, tenantId: string | null, rol: "admin" | "doctor" | "superadmin"): string {
   return jwt.sign({ userId, tenantId, rol }, getJwtSecret(), {
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   } as jwt.SignOptions);
