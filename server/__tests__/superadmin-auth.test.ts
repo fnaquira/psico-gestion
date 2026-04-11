@@ -39,6 +39,16 @@ describe("SuperAdmin Login", () => {
     });
 
     expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/inválidas/i);
+  });
+
+  it("returns 401 when email does not exist in either collection", async () => {
+    const res = await request.post("/api/auth/login").send({
+      email: "nobody@nowhere.com",
+      password: "SomePassword123",
+    });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/inválidas/i);
   });
 
   it("does NOT fall through to superadmin if user email exists (even with different password)", async () => {

@@ -6,6 +6,7 @@ import { Tenant } from "../models/Tenant.js";
 import { User } from "../models/User.js";
 import { SuperAdmin } from "../models/SuperAdmin.js";
 import { getJwtSecret } from "../env.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -166,8 +167,8 @@ router.post("/login", async (req, res) => {
       nombre: superAdmin.nombre,
       email: superAdmin.email,
       rol: "superadmin",
-      especialidad: "",
-      activo: true,
+      especialidad: "",   // SuperAdmin has no especialidad field
+      activo: true,       // SuperAdmin has no activo field; always active
       tenantId: null,
       createdAt: superAdmin.createdAt,
       timezone: "UTC",
@@ -182,14 +183,43 @@ router.post("/logout", (_req, res) => {
 });
 
 // GET /api/auth/me — returns current user + tenant from JWT
-import { authenticate } from "../middleware/auth.js";
 router.get("/me", authenticate, async (req, res) => {
-  const { userId, tenantId } = req.user!;
+  const { userId, rol } = req.user!;
+
+  // SuperAdmin lives in a separate collection with no tenantId
+  if (rol === "superadmin") {
+    const superAdmin = await SuperAdmin.findById(userId).lean();
+    if (!superAdmin) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
+    res.json({
+      user: {
+        _id: superAdmin._id,
+        nombre: superAdmin.nombre,
+        email: superAdmin.email,
+        rol: "superadmin",
+        especialidad: "",   // SuperAdmin has no especialidad field
+        activo: true,       // SuperAdmin has no activo field; always active
+        tenantId: null,
+        createdAt: superAdmin.createdAt,
+        timezone: "UTC",
+      },
+      tenant: null,
+    });
+    return;
+  }
+
+  // Regular user (admin / doctor)
+  const { tenantId } = req.user!;
   const [user, tenant] = await Promise.all([
     User.findById(userId).lean(),
     Tenant.findById(tenantId).lean(),
   ]);
-  if (!user) return res.status(404).json({ error: "Usuario no encontrado" }) as any;
+  if (!user) {
+    res.status(404).json({ error: "Usuario no encontrado" });
+    return;
+  }
   res.json({
     user: {
       _id: user._id,
