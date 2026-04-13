@@ -27,7 +27,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
+          <nav
+            aria-label="Navegación principal"
+            className="flex items-center gap-6 text-sm text-muted-foreground"
+          >
             <Link href="/" className="hover:text-foreground transition-colors">
               Inicio
             </Link>
