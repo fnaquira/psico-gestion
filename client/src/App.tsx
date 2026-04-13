@@ -10,6 +10,9 @@ import AdminPanelPage from "./pages/AdminPanelPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import LandingPage from "./pages/LandingPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
 
 function Router() {
   const { isAuth, loading, user, logout } = useAuth();
@@ -26,24 +29,29 @@ function Router() {
 
   return (
     <Switch>
-      {/* Auth routes — redirect to correct home based on role */}
+      {/* Páginas públicas — siempre accesibles sin auth */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/terms" component={TermsOfServicePage} />
+
+      {/* Auth routes */}
       <Route path="/login">
-        {!isAuth ? <LoginPage /> : isSuperAdmin ? <Redirect to="/admin" /> : <Redirect to="/" />}
+        {!isAuth ? <LoginPage /> : isSuperAdmin ? <Redirect to="/admin" /> : <Redirect to="/app" />}
       </Route>
       <Route path="/register">
-        {isAuth ? <Redirect to="/" /> : <RegisterPage />}
+        {isAuth ? <Redirect to="/app" /> : <RegisterPage />}
       </Route>
       <Route path="/forgot-password">
-        {isAuth ? <Redirect to="/" /> : <ForgotPasswordPage />}
+        {isAuth ? <Redirect to="/app" /> : <ForgotPasswordPage />}
       </Route>
 
-      {/* Superadmin panel */}
+      {/* Panel superadmin */}
       <Route path="/admin">
-        {!isAuth ? <Redirect to="/login" /> : !isSuperAdmin ? <Redirect to="/" /> : <AdminPanelPage onLogout={logout} />}
+        {!isAuth ? <Redirect to="/login" /> : !isSuperAdmin ? <Redirect to="/app" /> : <AdminPanelPage onLogout={logout} />}
       </Route>
 
-      {/* Regular app — superadmin redirected to /admin */}
-      <Route path="/">
+      {/* App principal — punto de entrada autenticado */}
+      <Route path="/app">
         {!isAuth ? <Redirect to="/login" /> : isSuperAdmin ? <Redirect to="/admin" /> : <Home onLogout={logout} />}
       </Route>
 
