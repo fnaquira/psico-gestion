@@ -58,7 +58,15 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="text-center sm:text-left">
             <p className="font-medium text-foreground">BM Negocios EIRL</p>
-            <p>Arequipa, Perú · privacidad@qhalicare.com</p>
+            <p>
+              Arequipa, Perú ·{' '}
+              <a
+                href="mailto:privacidad@qhalicare.com"
+                className="hover:text-foreground transition-colors"
+              >
+                privacidad@qhalicare.com
+              </a>
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/privacy" className="hover:text-foreground transition-colors">

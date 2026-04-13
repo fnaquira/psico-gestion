@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'wouter';
 import { Calendar, Users, CreditCard } from 'lucide-react';
 import PublicLayout from '@/components/PublicLayout';
@@ -24,6 +25,10 @@ const features = [
 ];
 
 export default function LandingPage() {
+  useEffect(() => {
+    document.title = 'QhaliCare Gestión — Sistema para clínicas de psicología';
+  }, []);
+
   return (
     <PublicLayout>
       {/* Hero */}
@@ -47,7 +52,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/login"
-            className="inline-flex bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
           >
             Acceder al sistema
           </Link>
