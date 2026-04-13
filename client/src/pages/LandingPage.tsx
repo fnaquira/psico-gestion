@@ -47,7 +47,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
           >
             Acceder al sistema
           </Link>
@@ -56,6 +56,7 @@ export default function LandingPage() {
 
       {/* Características */}
       <section className="max-w-5xl mx-auto px-6 pb-24">
+        <h2 className="sr-only">Características principales</h2>
         <div className="grid sm:grid-cols-3 gap-6">
           {features.map(({ icon: Icon, title, description }) => (
             <div
