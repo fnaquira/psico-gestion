@@ -1,5 +1,5 @@
 // client/src/pages/TermsOfServicePage.tsx
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import PublicLayout from '@/components/PublicLayout';
 
 function Section({
@@ -7,7 +7,7 @@ function Section({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="mb-8">
