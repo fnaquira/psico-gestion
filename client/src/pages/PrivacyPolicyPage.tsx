@@ -1,6 +1,27 @@
+import { useEffect } from 'react';
 import PublicLayout from '@/components/PublicLayout';
 
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-8">
+      <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
+      <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export default function PrivacyPolicyPage() {
+  useEffect(() => {
+    document.title = 'Política de Privacidad · QhaliCare Gestión';
+  }, []);
   return (
     <PublicLayout>
       <div className="max-w-2xl mx-auto px-6 py-16">
@@ -22,6 +43,8 @@ export default function PrivacyPolicyPage() {
             disponible en{' '}
             <a
               href="https://gestion.qhalicare.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-primary hover:underline"
             >
               gestion.qhalicare.com
@@ -274,22 +297,5 @@ export default function PrivacyPolicyPage() {
         </Section>
       </div>
     </PublicLayout>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mb-8">
-      <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
-      <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
-        {children}
-      </div>
-    </section>
   );
 }
