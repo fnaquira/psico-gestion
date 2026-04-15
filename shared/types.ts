@@ -78,6 +78,7 @@ export interface CitaDTO {
   notas: string;
   montoCita: number;
   fechaCreacion: string;
+  googleMeetLink?: string;
 }
 
 export interface PagoDTO {

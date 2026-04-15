@@ -142,7 +142,7 @@ export async function createCalendarEvent(
   cita: ICita,
   pacienteNombre: string,
   timezone: string,
-): Promise<string | null> {
+): Promise<{ eventId: string; meetLink: string | null } | null> {
   if (!doctor.googleCalendar?.syncEnabled) return null;
 
   const auth = await getAuthenticatedClient(doctor);
@@ -154,6 +154,7 @@ export async function createCalendarEvent(
   try {
     const response = await calendar.events.insert({
       calendarId: doctor.googleCalendar.calendarId ?? "primary",
+      conferenceDataVersion: 1,
       requestBody: {
         summary: `${tipoLabel} — ${pacienteNombre}`,
         description: cita.notas ? `Notas: ${cita.notas}` : undefined,
@@ -166,10 +167,19 @@ export async function createCalendarEvent(
           timeZone: timezone,
         },
         status: "confirmed",
+        conferenceData: {
+          createRequest: {
+            requestId: crypto.randomUUID(),
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
       },
     });
 
-    return response.data.id ?? null;
+    return {
+      eventId: response.data.id!,
+      meetLink: response.data.hangoutLink ?? null,
+    };
   } catch (err) {
     console.error("[GCal] Error al crear evento:", err);
     return null;
@@ -181,19 +191,20 @@ export async function updateCalendarEvent(
   cita: ICita,
   pacienteNombre: string,
   timezone: string,
-): Promise<boolean> {
-  if (!doctor.googleCalendar?.syncEnabled || !cita.googleCalendarEventId) return false;
+): Promise<{ ok: boolean; meetLink?: string | null }> {
+  if (!doctor.googleCalendar?.syncEnabled || !cita.googleCalendarEventId) return { ok: false };
 
   const auth = await getAuthenticatedClient(doctor);
-  if (!auth) return false;
+  if (!auth) return { ok: false };
 
   const calendar = google.calendar({ version: "v3", auth });
   const tipoLabel = TIPO_SESION_LABELS[cita.tipoSesion] ?? "Sesión";
 
   try {
-    await calendar.events.update({
+    const response = await calendar.events.update({
       calendarId: doctor.googleCalendar.calendarId ?? "primary",
       eventId: cita.googleCalendarEventId,
+      conferenceDataVersion: 1,
       requestBody: {
         summary: `${tipoLabel} — ${pacienteNombre}`,
         description: cita.notas ? `Notas: ${cita.notas}` : undefined,
@@ -208,10 +219,10 @@ export async function updateCalendarEvent(
         status: cita.estado === "cancelada" ? "cancelled" : "confirmed",
       },
     });
-    return true;
+    return { ok: true, meetLink: response.data.hangoutLink ?? null };
   } catch (err) {
     console.error("[GCal] Error al actualizar evento:", err);
-    return false;
+    return { ok: false };
   }
 }
 
@@ -254,15 +265,18 @@ export async function syncCitaToCalendar(
   const isUpdate = !!cita.googleCalendarEventId;
 
   if (isUpdate) {
-    const ok = await updateCalendarEvent(doctor, cita, pacienteNombre, timezone);
-    await Cita.findByIdAndUpdate(cita._id, {
-      googleSyncStatus: ok ? "synced" : "error",
-    });
+    const result = await updateCalendarEvent(doctor, cita, pacienteNombre, timezone);
+    const updateFields: Record<string, unknown> = {
+      googleSyncStatus: result.ok ? "synced" : "error",
+    };
+    if (result.meetLink) updateFields.googleMeetLink = result.meetLink;
+    await Cita.findByIdAndUpdate(cita._id, updateFields);
   } else {
-    const eventId = await createCalendarEvent(doctor, cita, pacienteNombre, timezone);
+    const result = await createCalendarEvent(doctor, cita, pacienteNombre, timezone);
     await Cita.findByIdAndUpdate(cita._id, {
-      googleCalendarEventId: eventId ?? undefined,
-      googleSyncStatus: eventId ? "synced" : "error",
+      googleCalendarEventId: result?.eventId ?? undefined,
+      googleMeetLink: result?.meetLink ?? undefined,
+      googleSyncStatus: result ? "synced" : "error",
     });
   }
 }

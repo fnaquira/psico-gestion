@@ -14,6 +14,7 @@ export interface ICita extends Document {
   numeroSesion?: number;
   fechaCreacion: Date;
   googleCalendarEventId?: string;
+  googleMeetLink?: string;
   googleSyncStatus: "pending" | "synced" | "error" | "skipped";
 }
 
@@ -39,6 +40,7 @@ const CitaSchema = new Schema<ICita>({
   numeroSesion: { type: Number },
   fechaCreacion: { type: Date, default: Date.now },
   googleCalendarEventId: { type: String },
+  googleMeetLink: { type: String },
   googleSyncStatus: {
     type: String,
     enum: ["pending", "synced", "error", "skipped"],

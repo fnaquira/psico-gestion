@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock, Loader2, Video } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -656,6 +656,18 @@ export default function AgendaView() {
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${TYPE_STYLES[typeLabel] ?? "bg-muted border-border text-foreground"}`}>
                   {typeLabel}
                 </span>
+                {(cita as any).googleMeetLink && (
+                  <a
+                    href={(cita as any).googleMeetLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-blue-600 hover:text-blue-500 text-xs font-semibold shrink-0 transition-colors flex items-center gap-1"
+                  >
+                    <Video size={13} strokeWidth={2} />
+                    Meet
+                  </a>
+                )}
                 <button
                   onClick={() => openEditCita(cita)}
                   className="text-primary hover:text-primary/70 text-xs font-semibold shrink-0 transition-colors"
@@ -788,6 +800,19 @@ export default function AgendaView() {
           <DialogHeader>
             <DialogTitle>{editingCita ? "Editar Cita" : "Nueva Cita"}</DialogTitle>
           </DialogHeader>
+          {(editingCita as any)?.googleMeetLink && (
+            <div className="flex items-center gap-2 text-sm bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2 rounded-md">
+              <Video size={14} className="text-blue-600 shrink-0" />
+              <a
+                href={(editingCita as any).googleMeetLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline truncate"
+              >
+                Enlace de Google Meet
+              </a>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Paciente */}
             <div className="relative">
