@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import crypto from "crypto";
+import { DateTime } from "luxon";
 import { User, IUser } from "../models/User";
 import { Cita, ICita } from "../models/Cita";
 
@@ -109,23 +110,11 @@ export async function getAuthenticatedClient(user: IUser) {
 // ─── Formatear fecha/hora para Google Calendar (RFC3339) ────────────────────
 
 function buildDateTime(fecha: Date, hora: string, timezone: string): string {
-  const fechaStr = fecha.toISOString().split("T")[0]; // YYYY-MM-DD
-  return new Date(`${fechaStr}T${hora}:00`).toLocaleString("sv-SE", {
-    timeZone: timezone,
-    hour12: false,
-  }).replace(" ", "T") + getTimezoneOffset(timezone);
-}
-
-function getTimezoneOffset(timezone: string): string {
-  const now = new Date();
-  const utcDate = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
-  const tzDate = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
-  const offsetMinutes = (tzDate.getTime() - utcDate.getTime()) / 60000;
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMinutes);
-  const hours = String(Math.floor(abs / 60)).padStart(2, "0");
-  const mins = String(abs % 60).padStart(2, "0");
-  return `${sign}${hours}:${mins}`;
+  // fecha is stored as UTC-midnight (new Date("YYYY-MM-DD")); extract date digits in UTC
+  const fechaStr = fecha.toISOString().split("T")[0];
+  const dt = DateTime.fromFormat(`${fechaStr} ${hora}`, "yyyy-MM-dd HH:mm", { zone: timezone });
+  if (!dt.isValid) throw new Error(`Fecha/hora inválida: ${fechaStr} ${hora} (${timezone})`);
+  return dt.toISO({ suppressMilliseconds: true })!;
 }
 
 const TIPO_SESION_LABELS: Record<string, string> = {
