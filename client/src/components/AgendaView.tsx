@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, Loader2, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock, Loader2, Video, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import api from "@/lib/api";
 import type { CitaDTO, UserDTO, PacienteDTO, BloqueoDTO } from "@shared/types";
 
@@ -136,6 +146,9 @@ export default function AgendaView() {
   const [editingCita, setEditingCita] = useState<CitaDTO | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+
+  const [citaToDelete, setCitaToDelete] = useState<CitaDTO | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [pacientes, setPacientes] = useState<PacienteDTO[]>([]);
   const [pacienteSearch, setPacienteSearch] = useState("");
@@ -333,6 +346,21 @@ export default function AgendaView() {
       loadData();
     } catch (err) {
       console.error("Error cancelling cita:", err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!citaToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/citas/${citaToDelete._id}/hard`);
+      setCitaToDelete(null);
+      if (editingCita?._id === citaToDelete._id) setDialogOpen(false);
+      loadData();
+    } catch (err) {
+      console.error("Error eliminando cita:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -682,6 +710,13 @@ export default function AgendaView() {
                     Cancelar
                   </button>
                 )}
+                <button
+                  onClick={() => setCitaToDelete(cita)}
+                  className="text-destructive hover:text-destructive/70 shrink-0 transition-colors"
+                  title="Eliminar cita"
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
               </div>
             );
           })}
@@ -951,31 +986,82 @@ export default function AgendaView() {
               />
             </div>
 
-            <DialogFooter>
-              <button
-                type="button"
-                onClick={() => setDialogOpen(false)}
-                className="px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || !form.pacienteId}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {submitting ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : editingCita ? (
-                  "Guardar"
-                ) : (
-                  "Crear Cita"
+            <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
+              <div className="flex items-center">
+                {editingCita && (
+                  <button
+                    type="button"
+                    onClick={() => setCitaToDelete(editingCita)}
+                    className="px-4 py-2 rounded-md text-sm font-medium text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
+                  >
+                    <Trash2 size={14} strokeWidth={2} />
+                    Eliminar
+                  </button>
                 )}
-              </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialogOpen(false)}
+                  className="px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !form.pacienteId}
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : editingCita ? (
+                    "Guardar"
+                  ) : (
+                    "Crear Cita"
+                  )}
+                </button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmación eliminar cita */}
+      <AlertDialog open={!!citaToDelete} onOpenChange={open => !open && setCitaToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {citaToDelete && (() => {
+                const nombre = citaToDelete.paciente
+                  ? `${citaToDelete.paciente.nombre} ${citaToDelete.paciente.apellido}`
+                  : "este paciente";
+                const fecha = new Date(citaToDelete.fecha).toLocaleDateString("es-CL", {
+                  weekday: "long", day: "numeric", month: "long",
+                });
+                const hasGcal = !!(citaToDelete as any).googleMeetLink;
+                return (
+                  <>
+                    Se eliminará la cita de <strong>{nombre}</strong> el {fecha} a las {citaToDelete.horaInicio}.
+                    {hasGcal && " También se eliminará el evento en Google Calendar."}
+                    {" "}Esta acción no se puede deshacer.
+                  </>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

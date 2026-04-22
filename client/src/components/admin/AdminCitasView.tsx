@@ -7,6 +7,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface CitaItem {
   _id: string;
@@ -45,6 +55,9 @@ export default function AdminCitasView() {
   const [editHoraFin, setEditHoraFin] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const [citaToDelete, setCitaToDelete] = useState<CitaItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -91,6 +104,21 @@ export default function AdminCitasView() {
       setSaveError(err.response?.data?.error ?? "Error al guardar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!citaToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/admin/citas/${citaToDelete._id}`);
+      setCitaToDelete(null);
+      setSheetOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error("Error eliminando cita:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -149,7 +177,17 @@ export default function AdminCitasView() {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{item.montoCita.toLocaleString("es-CL")}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Editar</Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>Editar</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setCitaToDelete(item)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -208,9 +246,47 @@ export default function AdminCitasView() {
               </Button>
               <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancelar</Button>
             </div>
+            {editTarget && (
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setCitaToDelete(editTarget)}
+              >
+                Eliminar cita
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Confirmación eliminar cita */}
+      <AlertDialog open={!!citaToDelete} onOpenChange={open => !open && setCitaToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {citaToDelete && (
+                <>
+                  Se eliminará la cita del {new Date(citaToDelete.fecha).toLocaleDateString("es-CL")} a las{" "}
+                  {citaToDelete.horaInicio} ({citaToDelete.tipoSesion}).
+                  Si tiene evento en Google Calendar, también se eliminará.
+                  Esta acción no se puede deshacer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

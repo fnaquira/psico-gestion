@@ -5,7 +5,7 @@ import { Cita } from "../models/Cita.js";
 import { Tenant } from "../models/Tenant.js";
 import { Paciente } from "../models/Paciente.js";
 import { User } from "../models/User.js";
-import { syncCitaToCalendar } from "../services/googleCalendarService.js";
+import { syncCitaToCalendar, deleteCalendarEvent } from "../services/googleCalendarService.js";
 
 const router = Router();
 
@@ -166,6 +166,25 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const timezone = doctor?.timezone ?? tenant?.settings?.timezone ?? "America/Lima";
     syncCitaToCalendar(cita, "", timezone).catch(console.error);
   }
+});
+
+// DELETE /api/citas/:id/hard — hard delete + borrar evento Google Calendar si existe
+router.delete("/:id/hard", async (req: Request, res: Response) => {
+  const { tenantId } = req.user!;
+  const cita = await Cita.findOne({ _id: req.params.id, tenantId: tenantId! });
+  if (!cita) {
+    res.status(404).json({ error: "Cita no encontrada" });
+    return;
+  }
+  if (cita.googleCalendarEventId) {
+    const doctor = await User.findById(cita.doctorId);
+    if (doctor) {
+      const deleted = await deleteCalendarEvent(doctor, cita.googleCalendarEventId);
+      if (!deleted) console.warn(`[GCal] No se pudo eliminar evento ${cita.googleCalendarEventId}`);
+    }
+  }
+  await Cita.deleteOne({ _id: cita._id });
+  res.json({ ok: true });
 });
 
 export default router;

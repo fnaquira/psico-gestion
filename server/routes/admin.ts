@@ -7,6 +7,7 @@ import { User } from "../models/User.js";
 import { Paciente } from "../models/Paciente.js";
 import { Cita } from "../models/Cita.js";
 import { Pago } from "../models/Pago.js";
+import { deleteCalendarEvent } from "../services/googleCalendarService.js";
 
 const router = Router();
 
@@ -216,6 +217,26 @@ router.patch(
       return;
     }
     res.json(cita);
+  }),
+);
+
+router.delete(
+  "/citas/:id",
+  wrap(async (req, res) => {
+    const cita = await Cita.findById(req.params.id);
+    if (!cita) {
+      res.status(404).json({ error: "Cita no encontrada" });
+      return;
+    }
+    if (cita.googleCalendarEventId) {
+      const doctor = await User.findById(cita.doctorId);
+      if (doctor) {
+        const deleted = await deleteCalendarEvent(doctor, cita.googleCalendarEventId);
+        if (!deleted) console.warn(`[GCal] No se pudo eliminar evento ${cita.googleCalendarEventId}`);
+      }
+    }
+    await Cita.deleteOne({ _id: cita._id });
+    res.json({ ok: true });
   }),
 );
 
